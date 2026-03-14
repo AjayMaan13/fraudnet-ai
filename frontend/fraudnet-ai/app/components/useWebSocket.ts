@@ -42,6 +42,7 @@ interface WebSocketState {
   stats: Stats;
   isConnected: boolean;
   txCount: number;
+  isDemoMode: boolean;
 }
 
 const WS_URL = "ws://localhost:8000/ws/stream";
@@ -62,6 +63,7 @@ export function useWebSocket() {
     stats: DEFAULT_STATS,
     isConnected: false,
     txCount: 0,
+    isDemoMode: false,
   });
 
   const wsRef      = useRef<WebSocket | null>(null);
@@ -122,6 +124,23 @@ export function useWebSocket() {
           },
         }));
 
+      } else if (msg.type === "demo_reset") {
+        // Backend has new demo data — clear state and reconnect quickly
+        nodesRef.current.clear();
+        edgesRef.current = [];
+        setState(s => ({
+          ...s,
+          nodes: [],
+          edges: [],
+          alerts: [],
+          stats: DEFAULT_STATS,
+          txCount: 0,
+          isDemoMode: true,
+        }));
+        // Override backoff so onclose reconnects in 200ms instead of 1000ms+
+        retryDelay.current = 200;
+        ws.close();
+
       } else if (msg.type === "risk_update") {
         const updates = msg.data as Record<string, number>;
         for (const [id, score] of Object.entries(updates)) {
@@ -174,5 +193,12 @@ export function useWebSocket() {
     };
   }, [connect]);
 
-  return state;
+  const reconnect = useCallback(() => {
+    if (retryRef.current) clearTimeout(retryRef.current);
+    wsRef.current?.close();
+    retryDelay.current = 1000;
+    setTimeout(connect, 300);
+  }, [connect]);
+
+  return { ...state, reconnect };
 }

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useRef, useState } from "react";
 import AIExplanation from "./components/AIExplanation";
 import AlertFeed from "./components/AlertFeed";
+import DemoModal from "./components/DemoModal";
 import StatsBar from "./components/StatsBar";
 import type { Alert } from "./components/useWebSocket";
 import { useWebSocket } from "./components/useWebSocket";
@@ -14,13 +15,32 @@ const MIN_SPLIT = 20;  // % minimum for either panel
 const MAX_SPLIT = 80;
 
 export default function Dashboard() {
-  const { nodes, edges, alerts, stats, isConnected, txCount } = useWebSocket();
+  const { nodes, edges, alerts, stats, isConnected, txCount, isDemoMode } = useWebSocket();
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [splitPct, setSplitPct] = useState(56); // alert feed height %
+  const [showDemo, setShowDemo] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
   const highlightIds = selectedAlert?.accounts ?? [];
+
+  const handleDemoLaunch = useCallback(async (cfg: {
+    n_accounts: number; n_transactions: number;
+    n_circular: number; n_structuring: number; n_burst: number;
+  }) => {
+    const res = await fetch("http://localhost:8000/demo/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cfg),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    setSelectedAlert(null);
+    setShowDemo(false);
+    // demo_reset WS message handles state clear + quick reconnect automatically
+  }, []);
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -67,6 +87,48 @@ export default function Dashboard() {
         {/* 3D Graph */}
         <div style={{ overflow: "hidden", position: "relative", minHeight: 0 }}>
           <GraphView nodes={nodes} edges={edges} highlightIds={highlightIds} />
+
+          {/* Demo Mode button — top center overlay */}
+          <div style={{
+            position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)",
+            display: "flex", alignItems: "center", gap: 8, zIndex: 10,
+          }}>
+            {isDemoMode && (
+              <div style={{
+                fontSize: 9, fontWeight: 700, color: "#EF4444",
+                background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+                borderRadius: 5, padding: "3px 8px", letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}>
+                Demo Mode
+              </div>
+            )}
+            <button
+              onClick={() => setShowDemo(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700,
+                cursor: "pointer",
+                background: "rgba(99,102,241,0.12)",
+                border: "1px solid rgba(99,102,241,0.3)",
+                color: "#818CF8",
+                backdropFilter: "blur(10px)",
+                letterSpacing: "0.03em",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = "rgba(99,102,241,0.22)";
+                e.currentTarget.style.borderColor = "rgba(99,102,241,0.5)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = "rgba(99,102,241,0.12)";
+                e.currentTarget.style.borderColor = "rgba(99,102,241,0.3)";
+              }}
+            >
+              <span style={{ fontSize: 12 }}>⚡</span>
+              Demo Mode
+            </button>
+          </div>
         </div>
 
         {/* Right sidebar */}
@@ -136,6 +198,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Demo Modal */}
+      {showDemo && (
+        <DemoModal
+          onClose={() => setShowDemo(false)}
+          onLaunch={handleDemoLaunch}
+        />
+      )}
 
       {/* Footer strip */}
       <div style={{

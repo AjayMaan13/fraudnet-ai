@@ -88,6 +88,7 @@ class FraudGraphEngine:
         self.detect_communities()
         self.detect_pagerank_anomaly()
         self.detect_temporal_burst()
+        self.detect_fanout()
 
     # ─────────────────────────────────────────────
     # DETECTION METHOD 1: CIRCULAR FLOWS
@@ -357,6 +358,100 @@ class FraudGraphEngine:
                 self.alerts.append(alert)
 
     # ─────────────────────────────────────────────
+    # DETECTION METHOD 5: FAN-OUT (STRUCTURING / MULE BURST)
+    # ─────────────────────────────────────────────
+
+    def _max_fanout_window(
+        self,
+        out_txns: list[tuple],
+        window: timedelta,
+    ) -> tuple[int, list[tuple]]:
+        """Sliding-window: return (distinct_recipient_count, txns_in_best_window)."""
+        best_count = 0
+        best_txns: list[tuple] = []
+        left = 0
+        for right in range(len(out_txns)):
+            while out_txns[right][0] - out_txns[left][0] > window:
+                left += 1
+            window_txns = out_txns[left : right + 1]
+            distinct = len({dst for _, dst, _ in window_txns})
+            if distinct > best_count:
+                best_count = distinct
+                best_txns = list(window_txns)
+        return best_count, best_txns
+
+    def detect_fanout(self):
+        """
+        Detect structuring (smurfing) and mule-network burst by analysing
+        *outgoing* transaction patterns per node.
+
+        Structuring:  1 source → 5+ distinct recipients in 60 min,
+                      all amounts < $10,000 (below CTR threshold).
+        Mule burst:   1 source → 8+ distinct recipients in 30 min
+                      (hub-and-spoke disbursement).
+        """
+        window_30 = timedelta(minutes=30)
+        window_60 = timedelta(minutes=60)
+
+        already_burst = set(self._burst_nodes)
+
+        for node in self.G.nodes:
+            out_txns: list[tuple] = []
+            for _, dst, d in self.G.out_edges(node, data=True):
+                if "timestamp" not in d:
+                    continue
+                try:
+                    ts = datetime.fromisoformat(d["timestamp"])
+                    out_txns.append((ts, dst, d))
+                except ValueError:
+                    continue
+
+            if len(out_txns) < 5:
+                continue
+
+            out_txns.sort(key=lambda x: x[0])
+
+            cnt_30, txns_30 = self._max_fanout_window(out_txns, window_30)
+            cnt_60, txns_60 = self._max_fanout_window(out_txns, window_60)
+
+            if node in already_burst:
+                continue
+
+            # ── Mule burst: 8+ distinct recipients in 30 min ──────────────
+            if cnt_30 >= 8:
+                accs = [node] + list({dst for _, dst, _ in txns_30})
+                total = round(sum(d.get("amount", 0) for _, _, d in txns_30), 2)
+                ts_max = max(ts for ts, _, _ in txns_30)
+                self._burst_nodes.add(node)
+                self.G.nodes[node]["burst"] = True
+                self.alerts.append({
+                    "id":           str(uuid.uuid4()),
+                    "type":         "burst_transfer",
+                    "accounts":     accs,
+                    "total_amount": total,
+                    "risk_score":   88,
+                    "timestamp":    ts_max.isoformat(),
+                    "subgraph":     self.get_subgraph(accs),
+                })
+
+            # ── Structuring: 5+ distinct recipients in 60 min, all < $10K ─
+            elif cnt_60 >= 5:
+                amounts = [d.get("amount", 0) for _, _, d in txns_60]
+                if all(a < 10_000 for a in amounts):
+                    accs = [node] + list({dst for _, dst, _ in txns_60})
+                    total = round(sum(amounts), 2)
+                    ts_max = max(ts for ts, _, _ in txns_60)
+                    self.alerts.append({
+                        "id":           str(uuid.uuid4()),
+                        "type":         "fanout",
+                        "accounts":     accs,
+                        "total_amount": total,
+                        "risk_score":   82,
+                        "timestamp":    ts_max.isoformat(),
+                        "subgraph":     self.get_subgraph(accs),
+                    })
+
+    # ─────────────────────────────────────────────
     # COMPOSITE RISK SCORES
     # ─────────────────────────────────────────────
 
@@ -550,5 +645,6 @@ class FraudGraphEngine:
         # Lightweight re-score only (skip expensive community detection)
         self.detect_cycles()
         self.detect_temporal_burst()
+        self.detect_fanout()
         self.calculate_risk_scores()
         return self.alerts[old_count:]

@@ -102,6 +102,15 @@ class AnalyzeRequest(BaseModel):
     account_ids: list[str]
 
 
+class DemoConfig(BaseModel):
+    n_accounts:    int = 100
+    n_transactions: int = 500
+    n_circular:    int = 3
+    n_structuring: int = 2
+    n_burst:       int = 2
+    seed:          int | None = None
+
+
 # ─────────────────────────────────────────────
 # REST ENDPOINTS
 # ─────────────────────────────────────────────
@@ -170,6 +179,59 @@ def _cached_explanation(subgraph: dict) -> dict:
             "Flag accounts for manual review",
             "Freeze outbound transfers pending investigation",
         ],
+    }
+
+
+@app.post("/demo/start")
+async def demo_start(config: DemoConfig):
+    """
+    Reset the graph engine with in-memory demo data and broadcast to all WS clients.
+    """
+    global engine, all_transactions
+
+    from backend.demo_generator import generate_demo_data
+    import networkx as nx
+
+    accounts, txns = generate_demo_data(
+        n_accounts=config.n_accounts,
+        n_transactions=config.n_transactions,
+        n_circular=config.n_circular,
+        n_structuring=config.n_structuring,
+        n_burst=config.n_burst,
+        seed=config.seed,
+    )
+
+    # Reset engine with demo data.
+    # Sort so normal txns (is_fraud=0) load first; fraud txns (is_fraud=1) load last.
+    # DiGraph keeps the last edge for any (src, dst) pair, so fraud edges won't be
+    # silently overwritten by a normal transaction on the same node pair.
+    txns_ordered = sorted(txns, key=lambda t: t["is_fraud"])
+    engine = FraudGraphEngine(str(DB_PATH))
+    engine.load_from_data(accounts, txns_ordered)
+    engine.calculate_risk_scores()
+
+    # Use demo transactions as the replay source
+    all_transactions = sorted(txns, key=lambda t: t["timestamp"])
+
+    print(f"  Demo mode: {engine.G.number_of_nodes()} nodes, "
+          f"{engine.G.number_of_edges()} edges, "
+          f"{len(engine.alerts)} alerts")
+
+    # Broadcast reset to all connected WebSocket clients
+    msg = {"type": "demo_reset"}
+    dead: set[WebSocket] = set()
+    for ws in list(connected_clients):
+        try:
+            await ws.send_json(msg)
+        except Exception:
+            dead.add(ws)
+    connected_clients.difference_update(dead)
+
+    return {
+        "status": "ok",
+        "nodes": engine.G.number_of_nodes(),
+        "edges": engine.G.number_of_edges(),
+        "alerts": len(engine.alerts),
     }
 
 
