@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Alert } from "./useWebSocket";
 
 interface Props {
@@ -7,6 +8,15 @@ interface Props {
   selectedId: string | null;
   onSelect: (alert: Alert) => void;
 }
+
+type FilterKey = "all" | "circular_flow" | "burst_transfer" | "fanout";
+
+const FILTERS: { key: FilterKey; label: string; icon: string; color: string }[] = [
+  { key: "all",           label: "All",        icon: "◈",  color: "#64748B" },
+  { key: "circular_flow", label: "Rings",      icon: "⟳",  color: "#EF4444" },
+  { key: "burst_transfer",label: "Burst",      icon: "⚡", color: "#F97316" },
+  { key: "fanout",        label: "Structuring",icon: "⤢",  color: "#EAB308" },
+];
 
 const TYPE_META: Record<string, { label: string; color: string; icon: string; bg: string }> = {
   circular_flow:  { label: "Circular Ring",  color: "#EF4444", icon: "⟳", bg: "rgba(239,68,68,0.06)"  },
@@ -29,56 +39,94 @@ function fmtMoney(n: number) {
 }
 
 export default function AlertFeed({ alerts, selectedId, onSelect }: Props) {
+  const [filter, setFilter] = useState<FilterKey>("all");
+
+  const visible = filter === "all" ? alerts : alerts.filter(a => a.type === filter);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Header */}
       <div style={{
-        padding: "11px 16px",
+        padding: "11px 16px 8px",
         borderBottom: "1px solid var(--border)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
         flexShrink: 0,
         background: "linear-gradient(90deg, rgba(239,68,68,0.04) 0%, transparent 100%)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          {/* Icon */}
-          <div style={{
-            width: 22, height: 22,
-            background: "rgba(239,68,68,0.12)",
-            border: "1px solid rgba(239,68,68,0.25)",
-            borderRadius: 5,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 11,
-          }}>⚠</div>
-          <span style={{
-            fontSize: 11, fontWeight: 700, color: "var(--text)",
-            textTransform: "uppercase", letterSpacing: "0.1em",
-          }}>
-            Fraud Alerts
-          </span>
-          {alerts.length > 0 && (
+        {/* Title row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <div style={{
+              width: 22, height: 22,
+              background: "rgba(239,68,68,0.12)",
+              border: "1px solid rgba(239,68,68,0.25)",
+              borderRadius: 5,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11,
+            }}>⚠</div>
             <span style={{
-              background: "var(--fraud)", color: "#fff",
-              borderRadius: 10, fontSize: 10, fontWeight: 700,
-              padding: "1px 7px",
-              boxShadow: "0 0 10px rgba(239,68,68,0.45)",
-              lineHeight: "16px",
+              fontSize: 11, fontWeight: 700, color: "var(--text)",
+              textTransform: "uppercase", letterSpacing: "0.1em",
             }}>
-              {alerts.length}
+              Fraud Alerts
+            </span>
+            {alerts.length > 0 && (
+              <span style={{
+                background: "var(--fraud)", color: "#fff",
+                borderRadius: 10, fontSize: 10, fontWeight: 700,
+                padding: "1px 7px",
+                boxShadow: "0 0 10px rgba(239,68,68,0.45)",
+                lineHeight: "16px",
+              }}>
+                {alerts.length}
+              </span>
+            )}
+          </div>
+          {alerts.length > 0 && (
+            <span style={{ fontSize: 9, color: "var(--muted)", letterSpacing: "0.05em" }}>
+              Click to analyze ›
             </span>
           )}
         </div>
-        {alerts.length > 0 && (
-          <span style={{ fontSize: 9, color: "var(--muted)", letterSpacing: "0.05em" }}>
-            Click to analyze ›
-          </span>
-        )}
+
+        {/* Filter chips */}
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+          {FILTERS.map(f => {
+            const count = f.key === "all" ? alerts.length : alerts.filter(a => a.type === f.key).length;
+            const active = filter === f.key;
+            return (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 4,
+                  padding: "3px 8px", borderRadius: 5, fontSize: 9, fontWeight: 600,
+                  cursor: "pointer",
+                  background: active ? `${f.color}18` : "rgba(255,255,255,0.03)",
+                  border: `1px solid ${active ? f.color + "50" : "rgba(255,255,255,0.07)"}`,
+                  color: active ? f.color : "var(--muted)",
+                  transition: "all 0.15s",
+                  letterSpacing: "0.03em",
+                }}
+              >
+                <span style={{ fontSize: 9 }}>{f.icon}</span>
+                {f.label}
+                {count > 0 && (
+                  <span style={{
+                    fontSize: 8, fontWeight: 700,
+                    background: active ? f.color + "25" : "rgba(255,255,255,0.06)",
+                    borderRadius: 3, padding: "0 4px",
+                    color: active ? f.color : "var(--muted)",
+                  }}>{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* List — fixed height scroll container */}
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 5, minHeight: 0 }}>
-        {alerts.length === 0 ? (
+        {visible.length === 0 ? (
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             height: "100%", color: "var(--muted)", textAlign: "center",
@@ -92,10 +140,10 @@ export default function AlertFeed({ alerts, selectedId, onSelect }: Props) {
               fontSize: 18, opacity: 0.35,
             }}>🔍</div>
             <span style={{ fontSize: 11, lineHeight: 1.6, opacity: 0.6 }}>
-              No alerts yet<br/>Monitoring live…
+              {filter === "all" ? "No alerts yet\nMonitoring live…" : `No ${FILTERS.find(f=>f.key===filter)?.label} alerts`}
             </span>
           </div>
-        ) : alerts.map((alert) => {
+        ) : visible.map((alert) => {
           const meta = TYPE_META[alert.type] || { label: alert.type, color: "#64748B", icon: "!", bg: "rgba(100,116,139,0.06)" };
           const selected = alert.id === selectedId;
           const risk = Math.round(alert.risk_score || 0);

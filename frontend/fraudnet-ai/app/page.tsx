@@ -19,10 +19,16 @@ export default function Dashboard() {
   const { nodes, edges, alerts, stats, isConnected, txCount } = useWebSocket();
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [splitPct, setSplitPct]           = useState(56);
+  const [panelWidth, setPanelWidth]       = useState(340);   // sidebar width px
   const [hasLaunched, setHasLaunched]     = useState(false);
   const [showReconfig, setShowReconfig]   = useState(false);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const dragging   = useRef(false);
+  const sidebarRef    = useRef<HTMLDivElement>(null);
+  const containerRef  = useRef<HTMLDivElement>(null);
+  const dragging      = useRef(false);
+  const hDragging     = useRef(false);           // horizontal panel resize
+
+  const MIN_PANEL = 260;
+  const MAX_PANEL = 560;
 
   const highlightIds = selectedAlert?.accounts ?? [];
 
@@ -68,6 +74,29 @@ export default function Dashboard() {
     window.addEventListener("mouseup", onUp);
   }, []);
 
+  const onPanelDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    hDragging.current = true;
+    document.body.style.cursor     = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const onMove = (ev: MouseEvent) => {
+      if (!hDragging.current || !containerRef.current) return;
+      const rect  = containerRef.current.getBoundingClientRect();
+      const width = rect.right - ev.clientX;          // distance from right edge
+      setPanelWidth(Math.min(MAX_PANEL, Math.max(MIN_PANEL, width)));
+    };
+    const onUp = () => {
+      hDragging.current = false;
+      document.body.style.cursor     = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
+
   // ── Launch screen ────────────────────────────────────────────────────────
   if (!hasLaunched) {
     return <LaunchScreen onLaunch={handleLaunch} />;
@@ -82,13 +111,15 @@ export default function Dashboard() {
     }}>
       <StatsBar stats={stats} isConnected={isConnected} txCount={txCount} />
 
-      <div style={{
-        flex: 1, display: "grid",
-        gridTemplateColumns: "1fr 300px",
-        overflow: "hidden", minHeight: 0,
-      }}>
+      <div
+        ref={containerRef}
+        style={{
+          flex: 1, display: "flex", flexDirection: "row",
+          overflow: "hidden", minHeight: 0,
+        }}
+      >
         {/* 3D Graph */}
-        <div style={{ overflow: "hidden", position: "relative", minHeight: 0 }}>
+        <div style={{ flex: 1, overflow: "hidden", position: "relative", minHeight: 0 }}>
           <GraphView nodes={nodes} edges={edges} highlightIds={highlightIds} />
 
           {/* Reconfigure button — top center */}
@@ -124,12 +155,33 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ── Horizontal drag handle ─────────────────────────── */}
+        <div
+          onMouseDown={onPanelDragStart}
+          style={{
+            width: 5, flexShrink: 0,
+            cursor: "col-resize",
+            background: "var(--border)",
+            position: "relative", zIndex: 2,
+            transition: "background 0.15s",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "#6366F155")}
+          onMouseLeave={e => (e.currentTarget.style.background = "var(--border)")}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", opacity: 0.5 }} />
+            ))}
+          </div>
+        </div>
+
         {/* Right sidebar */}
         <div
           ref={sidebarRef}
           style={{
+            width: panelWidth, flexShrink: 0,
             display: "flex", flexDirection: "column",
-            borderLeft: "1px solid var(--border)",
             overflow: "hidden",
             background: "var(--panel)",
             minHeight: 0, position: "relative",
