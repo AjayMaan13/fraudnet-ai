@@ -26,6 +26,7 @@ DB_PATH_DEFAULT = "data-gen/transactions.db"
 
 
 class FraudGraphEngine:
+    
     def __init__(self, db_path: str = DB_PATH_DEFAULT):
         self.G = nx.DiGraph()       # directed graph: edges = transactions
         self.risk_scores: dict[str, float] = {}   # account_id → 0–100
@@ -42,7 +43,7 @@ class FraudGraphEngine:
     # LOAD
     # ─────────────────────────────────────────────
 
-    def load_from_db(self):
+    def load_from_db(self): 
         """Read accounts + transactions from SQLite and populate the graph."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row

@@ -1,0 +1,44 @@
+[
+  {
+    "fraud_type": "Circular Money Laundering",
+    "confidence": "High",
+    "evidence": [
+      "4–6 accounts form a closed transaction loop with $10K–$50K cycled in under 4 hours",
+      "Each hop reduces the amount by ~8%, consistent with layering fees in laundering schemes",
+      "All timestamps cluster within a tight 2–4 hour window — a hallmark of automated laundering"
+    ],
+    "recommendations": [
+      "Freeze all accounts in the ring immediately pending SARs filing",
+      "Trace the originating deposit to identify the criminal source",
+      "Flag all counterparties for enhanced due diligence and 90-day monitoring"
+    ]
+  },
+  {
+    "fraud_type": "Structuring / Smurfing",
+    "confidence": "High",
+    "evidence": [
+      "Source account sent exactly $9,000–$9,800 to 5 separate accounts within 60 minutes — just below the $10,000 CTR reporting threshold",
+      "All 5 recipient accounts then forwarded funds to a single collection account within 6 hours",
+      "Recipient accounts are newly created (< 7 days old), a strong mule account indicator"
+    ],
+    "recommendations": [
+      "File a Suspicious Activity Report (SAR) with FinCEN for structuring activity",
+      "Block the collection (sink) account and seize funds pending investigation",
+      "Escalate source account for KYC review — structuring is a federal offense under 31 U.S.C. § 5324"
+    ]
+  },
+  {
+    "fraud_type": "Money Mule Network",
+    "confidence": "High",
+    "evidence": [
+      "Central mule account received a $20K–$80K deposit then dispersed funds to 10+ accounts within 30 minutes",
+      "All receiving accounts were created within the past 7 days — classic synthetic identity fraud profile",
+      "Transaction velocity (10+ outbound in 30 min) far exceeds normal retail banking behavior by 20x"
+    ],
+    "recommendations": [
+      "Block the central mule and all 10+ downstream accounts immediately",
+      "Initiate clawback of funds via ACH reversal within the 5-day window",
+      "Report to FDIC and coordinate with originating bank's fraud team for network takedown"
+    ]
+  }
+]
