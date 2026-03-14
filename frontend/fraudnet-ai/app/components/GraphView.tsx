@@ -1,7 +1,6 @@
 "use client";
 
-import * as d3 from "d3";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GraphEdge, GraphNode } from "./useWebSocket";
 
 interface Props {
@@ -17,231 +16,180 @@ const RISK_COLOR: Record<string, string> = {
   fraud:      "#EF4444",
 };
 
-const MAX_NODES = 300;
+const MAX_NODES  = 300;
+const UPDATE_MS  = 2000; // only push new data to 3D graph every 2 seconds
 
 export default function GraphView({ nodes, edges, highlightIds }: Props) {
-  const svgRef    = useRef<SVGSVGElement>(null);
-  const simRef    = useRef<d3.Simulation<d3.SimulationNodeDatum, undefined> | null>(null);
-  const zoomRef   = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
-  const gRef      = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
-  const nodeMapRef = useRef<Map<string, GraphNode>>(new Map());
+  const containerRef  = useRef<HTMLDivElement>(null);
+  const graphRef      = useRef<any>(null);
+  const rafRef        = useRef<number>(0);
+  const timerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef    = useRef<{ nodes: any[]; links: any[] } | null>(null);
+  const [label, setLabel] = useState("");
 
-  // ── Initial D3 setup ──────────────────────────────────────────────────────
+  // ── Init 3D graph once ────────────────────────────────────────────────────
   useEffect(() => {
-    if (!svgRef.current) return;
+    if (!containerRef.current) return;
 
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
+    let destroyed = false;
 
-    const { width, height } = svgRef.current.getBoundingClientRect();
+    import("3d-force-graph").then((mod) => {
+      if (destroyed || !containerRef.current) return;
 
-    // Zoom
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 4])
-      .on("zoom", e => g.attr("transform", e.transform));
-    svg.call(zoom);
-    zoomRef.current = zoom;
+      const ForceGraph3D = (mod.default || (mod as any)) as any;
+      const el = containerRef.current;
 
-    const g = svg.append("g");
-    gRef.current = g;
+      const fg = ForceGraph3D({ antialias: true, alpha: true })(el)
+        .backgroundColor("#080810")
+        .showNavInfo(false)
+        .nodeLabel((n: any) =>
+          `<div style="background:#10101E;border:1px solid #1E1E3A;border-radius:6px;padding:6px 10px;font-size:11px;line-height:1.6;color:#E2E8F0;pointer-events:none">
+            <b style="color:${RISK_COLOR[n.risk_level] || "#3B82F6"}">${n.name || n.id}</b><br/>
+            Risk: <b>${Math.round(n.risk_score)}</b> (${n.risk_level})<br/>
+            Type: ${n.account_type}
+          </div>`
+        )
+        .nodeColor((n: any) => RISK_COLOR[n.risk_level] || "#3B82F6")
+        .nodeVal((n: any) =>
+          n.risk_level === "fraud" ? 6 :
+          n.risk_level === "suspicious" ? 4 : 2
+        )
+        .nodeOpacity(0.92)
+        .linkColor((l: any) => l.tx_type?.startsWith("fraud") ? "#EF444455" : "#1E1E3A99")
+        .linkWidth((l: any) => l.tx_type?.startsWith("fraud") ? 1.5 : 0.4)
+        .linkDirectionalParticles((l: any) => l.tx_type?.startsWith("fraud") ? 4 : 0)
+        .linkDirectionalParticleWidth(1.4)
+        .linkDirectionalParticleColor(() => "#EF4444")
+        .linkDirectionalParticleSpeed(0.006)
+        .d3AlphaDecay(0.025)
+        .d3VelocityDecay(0.35);
 
-    g.append("g").attr("class", "links");
-    g.append("g").attr("class", "nodes");
+      // Slow auto-rotate — stopped when user interacts
+      let angle = 0;
+      let rotating = true;
+      el.addEventListener("mousedown", () => { rotating = false; });
 
-    // Force simulation
-    const sim = d3.forceSimulation()
-      .force("link", d3.forceLink().id((d: any) => d.id).distance(60).strength(0.4))
-      .force("charge", d3.forceManyBody().strength(-220))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide(14))
-      .alphaDecay(0.02);
+      const tick = () => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (!rotating || !fg) return;
+        fg.cameraPosition({
+          x: 600 * Math.sin(angle),
+          z: 600 * Math.cos(angle),
+        });
+        angle += 0.0015;
+      };
+      rafRef.current = requestAnimationFrame(tick);
 
-    simRef.current = sim;
+      // Handle container resize without blanking
+      const ro = new ResizeObserver(() => {
+        if (!containerRef.current) return;
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        fg.width(width).height(height);
+      });
+      ro.observe(el);
+
+      graphRef.current = fg;
+
+      // Flush any data that arrived before the graph was ready
+      if (pendingRef.current) {
+        fg.graphData({ nodes: pendingRef.current.nodes, links: pendingRef.current.links });
+        pendingRef.current = null;
+      }
+    });
+
+    return () => {
+      destroyed = true;
+      cancelAnimationFrame(rafRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      graphRef.current = null;
+    };
   }, []);
 
-  // ── Update graph when nodes/edges change ─────────────────────────────────
+  // ── Debounced data update — max once every UPDATE_MS ─────────────────────
   useEffect(() => {
-    if (!simRef.current || !gRef.current || !svgRef.current) return;
-
-    const sim = simRef.current;
-    const g   = gRef.current;
-
-    // Show highest-risk nodes if > MAX_NODES
-    const sorted = [...nodes].sort((a, b) => b.risk_score - a.risk_score);
+    const sorted  = [...nodes].sort((a, b) => b.risk_score - a.risk_score);
     const visible = sorted.slice(0, MAX_NODES);
-    const visibleIds = new Set(visible.map(n => n.id));
+    const visIds  = new Set(visible.map(n => n.id));
 
-    nodeMapRef.current = new Map(visible.map(n => [n.id, n]));
+    const gNodes = visible.map(n => ({ ...n }));
+    const gEdges = edges
+      .filter(e => visIds.has(e.source) && visIds.has(e.target))
+      .slice(-800)
+      .map(e => ({ source: e.source, target: e.target, tx_type: e.tx_type, amount: e.amount }));
 
-    const visibleEdges = edges.filter(
-      e => visibleIds.has(e.source) && visibleIds.has(e.target)
-    ).slice(-800);
+    const nextLabel = nodes.length > MAX_NODES
+      ? `Top ${MAX_NODES} / ${nodes.length} nodes`
+      : `${visible.length} nodes · ${gEdges.length} edges`;
 
-    // Preserve existing positions
-    const oldNodes = new Map<string, { x: number; y: number; vx: number; vy: number }>();
-    (sim.nodes() as any[]).forEach(n => {
-      oldNodes.set(n.id, { x: n.x, y: n.y, vx: n.vx || 0, vy: n.vy || 0 });
-    });
+    if (!graphRef.current) {
+      // Graph not ready yet — stash data using library key name "links"
+      pendingRef.current = { nodes: gNodes, links: gEdges };
+      setLabel(nextLabel);
+      return;
+    }
 
-    const simNodes: any[] = visible.map(n => ({
-      ...n,
-      ...(oldNodes.get(n.id) || {}),
-    }));
-
-    const simEdges = visibleEdges.map(e => ({ ...e }));
-
-    // Links
-    const linkSel = g.select<SVGGElement>(".links")
-      .selectAll<SVGLineElement, typeof simEdges[0]>("line")
-      .data(simEdges, (d: any) => `${d.source}-${d.target}`);
-
-    linkSel.exit().remove();
-
-    const linkEnter = linkSel.enter().append("line")
-      .attr("stroke", "#2D2D44")
-      .attr("stroke-opacity", 0.5)
-      .attr("stroke-width", (d: any) => Math.max(0.5, Math.log(d.amount + 1) / 10));
-
-    // Nodes
-    const nodeSel = g.select<SVGGElement>(".nodes")
-      .selectAll<SVGGElement, typeof simNodes[0]>("g.node")
-      .data(simNodes, (d: any) => d.id);
-
-    nodeSel.exit().remove();
-
-    const nodeEnter = nodeSel.enter()
-      .append("g")
-      .attr("class", "node")
-      .call(
-        d3.drag<SVGGElement, any>()
-          .on("start", (event, d) => {
-            if (!event.active) sim.alphaTarget(0.3).restart();
-            d.fx = d.x; d.fy = d.y;
-          })
-          .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
-          .on("end", (event, d) => {
-            if (!event.active) sim.alphaTarget(0);
-            d.fx = null; d.fy = null;
-          })
-      );
-
-    nodeEnter.append("circle")
-      .attr("r", (d: any) => {
-        const deg = edges.filter(e => e.source === d.id || e.target === d.id).length;
-        return Math.max(5, Math.min(14, 5 + Math.sqrt(deg)));
-      });
-
-    nodeEnter.append("title");
-
-    const nodeMerge = nodeSel.merge(nodeEnter as any);
-
-    // Update colors + pulse class
-    nodeMerge.select("circle")
-      .transition().duration(800)
-      .attr("fill", (d: any) => RISK_COLOR[d.risk_level] || "#3B82F6")
-      .attr("stroke", (d: any) =>
-        highlightIds.includes(d.id) ? "#FFFFFF" :
-        d.risk_level === "fraud" ? "#FF0000" : "transparent"
-      )
-      .attr("stroke-width", (d: any) => highlightIds.includes(d.id) ? 3 : 1.5);
-
-    nodeMerge.select("title").text((d: any) =>
-      `${d.name || d.id}\nRisk: ${Math.round(d.risk_score)} (${d.risk_level})\nType: ${d.account_type}`
-    );
-
-    // Pulse class for fraud nodes
-    nodeMerge.classed("node-fraud-pulse", (d: any) => d.risk_level === "fraud");
-
-    // Update simulation
-    sim.nodes(simNodes);
-    (sim.force("link") as d3.ForceLink<any, any>).links(simEdges);
-    sim.alpha(0.3).restart();
-
-    sim.on("tick", () => {
-      g.select(".links").selectAll<SVGLineElement, any>("line")
-        .attr("x1", d => (d.source as any).x)
-        .attr("y1", d => (d.source as any).y)
-        .attr("x2", d => (d.target as any).x)
-        .attr("y2", d => (d.target as any).y);
-
-      g.select(".nodes").selectAll<SVGGElement, any>("g.node")
-        .attr("transform", d => `translate(${d.x},${d.y})`);
-    });
+    // Debounce: clear pending timer, set new one
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      graphRef.current?.graphData({ nodes: gNodes, links: gEdges });
+      setLabel(nextLabel);
+    }, UPDATE_MS);
   }, [nodes, edges]);
 
-  // ── Highlight / zoom when selection changes ───────────────────────────────
+  // ── Zoom to highlighted nodes ─────────────────────────────────────────────
   useEffect(() => {
-    if (!gRef.current || !svgRef.current || !zoomRef.current) return;
-
-    gRef.current.select(".nodes").selectAll<SVGGElement, any>("g.node")
-      .select("circle")
-      .attr("stroke", (d: any) =>
-        highlightIds.includes(d.id) ? "#FFFFFF" :
-        d.risk_level === "fraud" ? "#FF0000" : "transparent"
-      )
-      .attr("stroke-width", (d: any) => highlightIds.includes(d.id) ? 3 : 1.5);
-
-    if (highlightIds.length === 0) return;
-
-    // Zoom to highlighted nodes
-    const sim = simRef.current;
-    if (!sim) return;
-    const highlightedNodes = (sim.nodes() as any[]).filter(n => highlightIds.includes(n.id));
-    if (highlightedNodes.length === 0) return;
-
-    const cx = d3.mean(highlightedNodes, n => n.x) ?? 0;
-    const cy = d3.mean(highlightedNodes, n => n.y) ?? 0;
-    const { width, height } = svgRef.current.getBoundingClientRect();
-
-    d3.select(svgRef.current)
-      .transition().duration(700)
-      .call(
-        zoomRef.current.transform,
-        d3.zoomIdentity
-          .translate(width / 2, height / 2)
-          .scale(2)
-          .translate(-cx, -cy)
-      );
+    if (!graphRef.current || highlightIds.length === 0) return;
+    const data    = graphRef.current.graphData();
+    const targets = (data.nodes as any[]).filter((n: any) => highlightIds.includes(n.id));
+    if (!targets.length) return;
+    const cx = targets.reduce((s: number, n: any) => s + (n.x || 0), 0) / targets.length;
+    const cy = targets.reduce((s: number, n: any) => s + (n.y || 0), 0) / targets.length;
+    const cz = targets.reduce((s: number, n: any) => s + (n.z || 0), 0) / targets.length;
+    graphRef.current.cameraPosition(
+      { x: cx, y: cy, z: cz + 220 },
+      { x: cx, y: cy, z: cz },
+      700
+    );
   }, [highlightIds]);
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", background: "var(--bg)" }}>
-      <svg
-        ref={svgRef}
-        style={{ width: "100%", height: "100%", display: "block" }}
-      />
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+
       {/* Legend */}
       <div style={{
-        position: "absolute",
-        bottom: 12,
-        left: 12,
-        display: "flex",
-        gap: 10,
-        background: "rgba(26,26,46,0.85)",
-        border: "1px solid var(--border)",
-        borderRadius: 6,
-        padding: "6px 10px",
+        position: "absolute", bottom: 14, left: 14,
+        display: "flex", gap: 12,
+        background: "rgba(16,16,30,0.9)", border: "1px solid #1E1E3A",
+        borderRadius: 8, padding: "7px 14px",
+        backdropFilter: "blur(8px)",
       }}>
         {Object.entries(RISK_COLOR).map(([level, color]) => (
           <div key={level} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: color }} />
-            <span style={{ fontSize: 10, color: "var(--muted)", textTransform: "capitalize" }}>{level}</span>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}` }} />
+            <span style={{ fontSize: 10, color: "#4A5568", textTransform: "capitalize" }}>{level}</span>
           </div>
         ))}
       </div>
-      {/* Node count */}
+
+      {/* Node/edge counter */}
       <div style={{
-        position: "absolute",
-        top: 10,
-        right: 12,
-        fontSize: 10,
-        color: "var(--muted)",
-        background: "rgba(26,26,46,0.85)",
-        border: "1px solid var(--border)",
-        borderRadius: 4,
-        padding: "3px 8px",
+        position: "absolute", top: 12, left: 14,
+        fontSize: 10, color: "#4A5568",
+        background: "rgba(16,16,30,0.9)", border: "1px solid #1E1E3A",
+        borderRadius: 6, padding: "4px 10px", backdropFilter: "blur(8px)",
       }}>
-        {nodes.length > MAX_NODES ? `Top ${MAX_NODES} / ${nodes.length} nodes` : `${nodes.length} nodes`}
+        {label}
+      </div>
+
+      {/* 3D badge */}
+      <div style={{
+        position: "absolute", top: 12, right: 14,
+        fontSize: 10, fontWeight: 700, color: "#3B82F6",
+        background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)",
+        borderRadius: 6, padding: "4px 10px", letterSpacing: "0.08em",
+      }}>
+        3D · WebGL
       </div>
     </div>
   );

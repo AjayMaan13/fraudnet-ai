@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --bg:           #0F0F11;
-  --panel:        #1A1A2E;
-  --border:       #2D2D44;
+  --bg:           #080810;
+  --panel:        #10101E;
+  --panel2:       #14142A;
+  --border:       #1E1E3A;
   --text:         #E2E8F0;
-  --muted:        #64748B;
+  --muted:        #4A5568;
   --clean:        #3B82F6;
   --watch:        #EAB308;
   --suspicious:   #F97316;
   --fraud:        #EF4444;
+  --accent:       #6366F1;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,24 +19,28 @@
 html, body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   height: 100%;
   overflow: hidden;
-}
-
-/* Fraud node pulse animation */
-@keyframes pulse-fraud {
-  0%   { transform: scale(1);   opacity: 1; }
-  50%  { transform: scale(1.35); opacity: 0.8; }
-  100% { transform: scale(1);   opacity: 1; }
-}
-
-.node-fraud-pulse {
-  animation: pulse-fraud 1.5s ease-in-out infinite;
-  transform-origin: center;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--panel); }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Glow animations */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.alert-new {
+  animation: slide-in 0.3s ease-out;
+}
