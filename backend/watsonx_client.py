@@ -29,6 +29,7 @@ IAM_URL      = "https://iam.cloud.ibm.com/identity/token"
 CACHE_PATH   = Path(__file__).parent / "watsonx_cache.json"
 
 _iam_token: str = ""
+_iam_token_expiry: float = 0.0
 
 
 # ─────────────────────────────────────────────
@@ -36,9 +37,12 @@ _iam_token: str = ""
 # ─────────────────────────────────────────────
 
 async def _get_iam_token() -> str:
-    """Exchange API key for a short-lived IBM Cloud IAM bearer token."""
-    global _iam_token
-    if _iam_token:
+    """Exchange API key for a short-lived IBM Cloud IAM bearer token.
+    Automatically refreshes 5 minutes before expiry."""
+    import time
+    global _iam_token, _iam_token_expiry
+
+    if _iam_token and time.time() < _iam_token_expiry:
         return _iam_token
 
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -51,7 +55,11 @@ async def _get_iam_token() -> str:
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         resp.raise_for_status()
-        _iam_token = resp.json()["access_token"]
+        data = resp.json()
+        _iam_token = data["access_token"]
+        # expires_in is in seconds (typically 3600); refresh 5 min early
+        _iam_token_expiry = time.time() + data.get("expires_in", 3600) - 300
+        print(f"  [watsonx] IAM token refreshed (expires in {data.get('expires_in', 3600)//60}m)")
         return _iam_token
 
 
