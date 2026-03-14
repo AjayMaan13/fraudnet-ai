@@ -2,43 +2,88 @@
   {
     "fraud_type": "Circular Money Laundering",
     "confidence": "High",
+    "severity": "Critical",
+    "pattern_summary": "A closed transaction loop has been identified involving 4–6 accounts cycling funds in a tight 2–4 hour window. Each hop reduces the amount by approximately 8%, consistent with a layering fee structure used to obscure the criminal origin of funds before integration into the financial system.",
     "evidence": [
       "4–6 accounts form a closed transaction loop with $10K–$50K cycled in under 4 hours",
-      "Each hop reduces the amount by ~8%, consistent with layering fees in laundering schemes",
-      "All timestamps cluster within a tight 2–4 hour window — a hallmark of automated laundering"
+      "Each hop reduces the amount by ~8%, consistent with automated layering fees in laundering schemes",
+      "All timestamps cluster within a tight 2–4 hour window, indicating scripted or bot-driven execution",
+      "Originating deposit sourced from an unverified high-risk jurisdiction",
+      "No legitimate business purpose identified for the circular fund flow"
+    ],
+    "risk_indicators": [
+      "Velocity anomaly: 4–6 high-value transfers in under 4 hours across connected accounts",
+      "Circular topology: funds return to origin account after multi-hop layering",
+      "8% fee deduction per hop matches known professional laundering service rates"
+    ],
+    "regulatory_flags": [
+      "SAR filing required under BSA — circular layering scheme exceeds $5,000 threshold",
+      "Potential violation of 18 U.S.C. § 1956 (Money Laundering) — concealment of proceeds"
     ],
     "recommendations": [
-      "Freeze all accounts in the ring immediately pending SARs filing",
-      "Trace the originating deposit to identify the criminal source",
-      "Flag all counterparties for enhanced due diligence and 90-day monitoring"
-    ]
+      "Immediately freeze all accounts in the ring pending Suspicious Activity Report (SAR) filing",
+      "Trace the originating deposit to identify the criminal source and upstream beneficiary",
+      "Flag all counterparties for enhanced due diligence and 90-day transaction monitoring",
+      "Coordinate with FinCEN and law enforcement if total amount exceeds $25,000"
+    ],
+    "investigation_priority": "Immediate"
   },
   {
     "fraud_type": "Structuring / Smurfing",
     "confidence": "High",
+    "severity": "High",
+    "pattern_summary": "The source account dispersed funds to 5+ separate accounts in transactions deliberately kept just below the $10,000 CTR reporting threshold. All recipient accounts then consolidated funds to a single collection account, forming a classic smurfing pattern used to avoid BSA reporting obligations.",
     "evidence": [
-      "Source account sent exactly $9,000–$9,800 to 5 separate accounts within 60 minutes — just below the $10,000 CTR reporting threshold",
-      "All 5 recipient accounts then forwarded funds to a single collection account within 6 hours",
-      "Recipient accounts are newly created (< 7 days old), a strong mule account indicator"
+      "Source account sent $9,000–$9,800 to 5 separate accounts within 60 minutes — just below the $10,000 CTR threshold",
+      "All 5 recipient accounts forwarded funds to a single collection account within 6 hours",
+      "Recipient accounts are newly created (< 7 days old), a strong mule account indicator",
+      "Transaction amounts show deliberate rounding to stay under reporting thresholds",
+      "No prior relationship between source and recipient accounts detected"
+    ],
+    "risk_indicators": [
+      "Sub-threshold structuring: all transactions deliberately kept under $10,000 CTR limit",
+      "Fan-out pattern: 1 source to 5+ recipients followed by immediate consolidation",
+      "Newly opened recipient accounts with no prior transaction history"
+    ],
+    "regulatory_flags": [
+      "Structuring is a federal offense under 31 U.S.C. § 5324 regardless of source of funds",
+      "Currency Transaction Report (CTR) may be required for aggregate daily amounts exceeding $10,000"
     ],
     "recommendations": [
-      "File a Suspicious Activity Report (SAR) with FinCEN for structuring activity",
-      "Block the collection (sink) account and seize funds pending investigation",
-      "Escalate source account for KYC review — structuring is a federal offense under 31 U.S.C. § 5324"
-    ]
+      "File a Suspicious Activity Report (SAR) with FinCEN for confirmed structuring activity",
+      "Block the collection (sink) account and place funds on legal hold pending investigation",
+      "Escalate source account for full KYC review and beneficial ownership verification",
+      "Apply 180-day enhanced monitoring to all accounts in the fan-out network"
+    ],
+    "investigation_priority": "Urgent"
   },
   {
     "fraud_type": "Money Mule Network",
     "confidence": "High",
+    "severity": "Critical",
+    "pattern_summary": "A central mule account received a large deposit and dispersed funds to 10+ newly created accounts within 30 minutes. This burst pattern is characteristic of an organized money mule network using synthetic identities to rapidly move and obscure illicit funds before detection systems trigger.",
     "evidence": [
       "Central mule account received a $20K–$80K deposit then dispersed funds to 10+ accounts within 30 minutes",
       "All receiving accounts were created within the past 7 days — classic synthetic identity fraud profile",
-      "Transaction velocity (10+ outbound in 30 min) far exceeds normal retail banking behavior by 20x"
+      "Transaction velocity (10+ outbound transfers in 30 minutes) exceeds normal behavior by 20x",
+      "Receiving accounts show no prior activity or established banking history",
+      "Geographic dispersion of recipient accounts inconsistent with legitimate payroll or business disbursement"
+    ],
+    "risk_indicators": [
+      "Burst disbursement: 10+ outbound transfers within 30 minutes from a single account",
+      "Synthetic identity indicators on all downstream accounts (new, no history, high velocity)",
+      "Hub-and-spoke network topology consistent with professional mule network operations"
+    ],
+    "regulatory_flags": [
+      "FDIC notification required — potential organized fraud ring activity exceeding $10,000",
+      "BSA SAR filing required within 30 days of detection — mass account fraud scheme"
     ],
     "recommendations": [
-      "Block the central mule and all 10+ downstream accounts immediately",
-      "Initiate clawback of funds via ACH reversal within the 5-day window",
-      "Report to FDIC and coordinate with originating bank's fraud team for network takedown"
-    ]
+      "Block the central mule and all 10+ downstream accounts immediately to prevent further movement",
+      "Initiate ACH clawback of funds within the 5-business-day reversal window",
+      "Report to FDIC and coordinate with originating bank's fraud team for network takedown",
+      "Preserve all transaction logs and account records for law enforcement handoff"
+    ],
+    "investigation_priority": "Immediate"
   }
 ]
