@@ -146,7 +146,9 @@ async def get_fraud_explanation(subgraph: dict) -> dict:
     """
     if not WATSONX_API_KEY or not WATSONX_PROJECT_ID:
         print("  [watsonx] No credentials — returning cached response")
-        return _pick_cached(subgraph)
+        result = _pick_cached(subgraph)
+        result["source"] = "cached"
+        return result
 
     try:
         token   = await _get_iam_token()
@@ -191,8 +193,11 @@ async def get_fraud_explanation(subgraph: dict) -> dict:
             if key not in result:
                 raise ValueError(f"Missing key in response: {key}")
 
+        result["source"] = "live"
         return result
 
     except Exception as e:
         print(f"  [watsonx] Error ({type(e).__name__}: {e}) — returning cached response")
-        return _pick_cached(subgraph)
+        result = _pick_cached(subgraph)
+        result["source"] = "cached"
+        return result

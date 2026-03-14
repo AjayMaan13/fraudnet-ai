@@ -29,11 +29,12 @@ export default function Dashboard() {
       <div style={{
         flex: 1,
         display: "grid",
-        gridTemplateColumns: "1fr 290px",
+        gridTemplateColumns: "1fr 300px",
         overflow: "hidden",
+        minHeight: 0,
       }}>
         {/* 3D Graph */}
-        <div style={{ overflow: "hidden", position: "relative" }}>
+        <div style={{ overflow: "hidden", position: "relative", minHeight: 0 }}>
           <GraphView nodes={nodes} edges={edges} highlightIds={highlightIds} />
         </div>
 
@@ -44,9 +45,23 @@ export default function Dashboard() {
           borderLeft: "1px solid var(--border)",
           overflow: "hidden",
           background: "var(--panel)",
+          minHeight: 0,
+          position: "relative",
         }}>
-          {/* Alert feed — top 55% */}
-          <div style={{ flex: "0 0 55%", borderBottom: "1px solid var(--border)", overflow: "hidden" }}>
+          {/* Subtle top gradient accent */}
+          <div style={{
+            position: "absolute", top: 0, left: 0, right: 0, height: 1,
+            background: "linear-gradient(90deg, rgba(239,68,68,0.4) 0%, rgba(99,102,241,0.4) 100%)",
+            zIndex: 1,
+          }} />
+
+          {/* Alert feed — top 56% */}
+          <div style={{
+            flex: "0 0 56%",
+            borderBottom: "1px solid var(--border)",
+            overflow: "hidden",
+            minHeight: 0,
+          }}>
             <AlertFeed
               alerts={alerts}
               selectedId={selectedAlert?.id ?? null}
@@ -54,8 +69,8 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* AI panel — bottom 45% */}
-          <div style={{ flex: 1, overflow: "hidden" }}>
+          {/* AI panel — bottom 44% */}
+          <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
             <AIExplanation alert={selectedAlert} />
           </div>
         </div>

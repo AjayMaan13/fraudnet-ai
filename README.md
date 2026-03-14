@@ -14,7 +14,7 @@ Transactions stream live into a 3D force-directed graph. Fraud rings, mule netwo
 | Backend | Python, FastAPI, WebSocket |
 | Graph Engine | NetworkX — cycle detection, PageRank, burst analysis |
 | AI Analysis | IBM watsonx.ai — Granite 3 8B Instruct |
-| Database | IBM Db2 *(availability in progress)* · SQLite fallback |
+| Database | IBM Db2 (ca-tor) · SQLite fallback |
 | Data | Synthetic generator — 500 accounts, 5000+ transactions, 3 fraud patterns |
 
 ---

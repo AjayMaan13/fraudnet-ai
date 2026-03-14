@@ -43,40 +43,45 @@ class FraudGraphEngine:
     # LOAD
     # ─────────────────────────────────────────────
 
-    def load_from_db(self): 
+    def load_from_db(self):
         """Read accounts + transactions from SQLite and populate the graph."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
-        # Load accounts as nodes
         cur.execute("SELECT id, name, created_at, account_type FROM accounts")
-        for row in cur.fetchall():
-            self.G.add_node(
-                row["id"],
-                name=row["name"],
-                created_at=row["created_at"],
-                account_type=row["account_type"],
-            )
+        accounts = [dict(r) for r in cur.fetchall()]
 
-        # Load transactions as edges (multi-edges allowed via key=tx_id)
         cur.execute(
             "SELECT id, from_account, to_account, amount, timestamp, tx_type, is_fraud "
             "FROM transactions"
         )
-        for row in cur.fetchall():
+        transactions = [dict(r) for r in cur.fetchall()]
+        conn.close()
+
+        self.load_from_data(accounts, transactions)
+
+    def load_from_data(self, accounts: list[dict], transactions: list[dict]):
+        """Populate the graph from pre-fetched account + transaction dicts (Db2 or SQLite)."""
+        for row in accounts:
+            self.G.add_node(
+                row["id"],
+                name=row.get("name", ""),
+                created_at=row.get("created_at", ""),
+                account_type=row.get("account_type", "personal"),
+            )
+
+        for row in transactions:
             self.G.add_edge(
                 row["from_account"],
                 row["to_account"],
                 key=row["id"],
                 tx_id=row["id"],
-                amount=row["amount"],
-                timestamp=row["timestamp"],
+                amount=float(row["amount"]),
+                timestamp=str(row["timestamp"]),
                 tx_type=row["tx_type"],
-                is_fraud=row["is_fraud"],
+                is_fraud=int(row["is_fraud"]),
             )
-
-        conn.close()
 
         # Run all detection passes after loading
         self.detect_cycles()

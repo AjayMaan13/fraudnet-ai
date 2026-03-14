@@ -50,7 +50,16 @@ async def lifespan(app: FastAPI):
 
     print("Loading graph from database...")
     engine = FraudGraphEngine(str(DB_PATH))
-    engine.load_from_db()
+
+    try:
+        from backend.db2_client import load_transactions_with_fallback
+        accounts, txns, db_source = load_transactions_with_fallback()
+        engine.load_from_data(accounts, txns)
+        print(f"  Source: {db_source.upper()}")
+    except Exception as e:
+        print(f"  Db2 client error ({e}) — falling back to SQLite")
+        engine.load_from_db()
+
     engine.calculate_risk_scores()
     print(f"  Graph ready: {engine.G.number_of_nodes()} nodes, "
           f"{engine.G.number_of_edges()} edges, "
@@ -126,14 +135,15 @@ async def analyze(req: AnalyzeRequest):
     """
     subgraph = engine.get_subgraph(req.account_ids)
 
-    # Try watsonx.ai — import lazily so the app starts even without .env
     try:
         from backend.watsonx_client import get_fraud_explanation
         result = await get_fraud_explanation(subgraph)
         return result
     except Exception as e:
         print(f"  watsonx unavailable ({e}), returning cached response")
-        return _cached_explanation(subgraph)
+        result = _cached_explanation(subgraph)
+        result["source"] = "cached"
+        return result
 
 
 def _cached_explanation(subgraph: dict) -> dict:

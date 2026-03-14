@@ -235,9 +235,14 @@ def load_transactions_with_fallback() -> tuple[list[dict], list[dict], str]:
     """
     if DB2_DSN:
         try:
-            conn = get_db2_connection()
+            conn   = get_db2_connection()
             setup_schema(conn)
-            load_data_from_sqlite(conn)
+            counts = get_counts(conn)
+            # Only load if tables are empty — avoids slow re-insert on every startup
+            if counts["transactions"] == 0:
+                load_data_from_sqlite(conn)
+            else:
+                print(f"  [Db2] Data already loaded ({counts['transactions']} transactions, {counts['accounts']} accounts)")
             accounts = fetch_accounts(conn)
             txns     = fetch_transactions(conn)
             print(f"  [Db2] Serving {len(txns)} transactions from IBM Db2")
