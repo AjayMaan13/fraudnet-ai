@@ -3,8 +3,13 @@ FraudNet-AI — IBM Db2 Client
 Loads transaction data into Db2 and provides a read interface.
 Falls back to SQLite if Db2 is unavailable.
 
-Env var required (backend/.env):
-    DB2_DSN=DATABASE=BLUDB;HOSTNAME=xxx.databases.appdomain.cloud;PORT=30756;PROTOCOL=TCPIP;UID=xxx;PWD=xxx;Security=SSL
+Env vars required (backend/.env):
+    DB2_HOSTNAME=xxx.databases.appdomain.cloud
+    DB2_PORT=50001
+    DB2_DATABASE=BLUDB
+    DB2_USERNAME=xxx
+    DB2_PASSWORD=xxx
+    DB2_SSL=true
 """
 
 import os
@@ -15,7 +20,21 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
 
-DB2_DSN   = os.getenv("DB2_DSN", "")
+def _build_dsn() -> str:
+    host = os.getenv("DB2_HOSTNAME", "")
+    port = os.getenv("DB2_PORT", "50001")
+    db   = os.getenv("DB2_DATABASE", "BLUDB")
+    uid  = os.getenv("DB2_USERNAME", "")
+    pwd  = os.getenv("DB2_PASSWORD", "")
+    ssl  = os.getenv("DB2_SSL", "true").lower() == "true"
+    if not host or not uid or not pwd:
+        return ""
+    dsn = f"DATABASE={db};HOSTNAME={host};PORT={port};PROTOCOL=TCPIP;UID={uid};PWD={pwd}"
+    if ssl:
+        dsn += ";Security=SSL"
+    return dsn
+
+DB2_DSN   = _build_dsn()
 REPO_ROOT = Path(__file__).parent.parent
 DB_PATH   = str(REPO_ROOT / "data-gen" / "transactions.db")
 

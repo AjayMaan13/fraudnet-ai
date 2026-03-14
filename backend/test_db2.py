@@ -36,26 +36,27 @@ def sep(title: str):
 # ─────────────────────────────────────────────
 
 def test_env() -> bool:
-    sep("TEST 1 — DB2_DSN Environment Variable")
-    if not DSN:
-        print("  ❌ DB2_DSN is not set in backend/.env")
-        print("     Add:  DB2_DSN=DATABASE=BLUDB;HOSTNAME=...;PORT=30756;PROTOCOL=TCPIP;UID=...;PWD=...;Security=SSL")
-        return False
+    sep("TEST 1 — Db2 Environment Variables")
+    fields = {
+        "DB2_HOSTNAME": os.getenv("DB2_HOSTNAME", ""),
+        "DB2_PORT":     os.getenv("DB2_PORT", ""),
+        "DB2_DATABASE": os.getenv("DB2_DATABASE", ""),
+        "DB2_USERNAME": os.getenv("DB2_USERNAME", ""),
+        "DB2_PASSWORD": os.getenv("DB2_PASSWORD", ""),
+    }
+    all_ok = True
+    for key, val in fields.items():
+        if not val:
+            print(f"  ❌ {key} not set")
+            all_ok = False
+        elif key == "DB2_PASSWORD":
+            print(f"  ✅ {key} = *****")
+        else:
+            print(f"  ✅ {key} = {val}")
 
-    # Show sanitized DSN (hide password)
-    parts = dict(p.split("=", 1) for p in DSN.split(";") if "=" in p)
-    sanitized = ";".join(
-        f"{k}={'*****' if k.upper() in ('PWD', 'PASSWORD') else v}"
-        for k, v in parts.items()
-    )
-    print(f"  ✅ DSN found: {sanitized}")
-
-    required = {"DATABASE", "HOSTNAME", "PORT", "UID", "PWD"}
-    missing  = required - {k.upper() for k in parts}
-    if missing:
-        print(f"  ⚠️  Missing DSN fields: {missing}")
-        return False
-    return True
+    if not all_ok:
+        print("\n     Fill in the missing fields in backend/.env")
+    return all_ok
 
 
 # ─────────────────────────────────────────────
