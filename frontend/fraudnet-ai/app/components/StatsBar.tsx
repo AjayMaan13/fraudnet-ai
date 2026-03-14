@@ -120,14 +120,35 @@ export default function StatsBar({ stats, isConnected, txCount }: Props) {
       </div>
 
       {/* Right badges */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: 24, flexShrink: 0 }}>
-        {/* DB badge */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 24, flexShrink: 0 }}>
+        {/* watsonx.ai badge */}
         <div style={{
-          fontSize: 9, fontWeight: 600, color: "#818CF8",
+          display: "flex", alignItems: "center", gap: 5,
           background: "rgba(99,102,241,0.08)",
-          border: "1px solid rgba(99,102,241,0.18)",
-          borderRadius: 5, padding: "4px 9px",
-          letterSpacing: "0.06em",
+          border: "1px solid rgba(99,102,241,0.22)",
+          borderRadius: 6, padding: "4px 10px",
+        }}>
+          <svg width="12" height="12" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="14" fill="url(#ibm-grad)" />
+            <defs>
+              <linearGradient id="ibm-grad" x1="0" y1="0" x2="32" y2="32">
+                <stop offset="0%" stopColor="#6366F1"/>
+                <stop offset="100%" stopColor="#818CF8"/>
+              </linearGradient>
+            </defs>
+            <text x="5" y="21" fontSize="13" fontWeight="800" fill="white" fontFamily="Arial">AI</text>
+          </svg>
+          <span style={{ fontSize: 9, fontWeight: 700, color: "#818CF8", letterSpacing: "0.05em" }}>
+            watsonx.ai
+          </span>
+        </div>
+        {/* Db2 badge */}
+        <div style={{
+          fontSize: 9, fontWeight: 600, color: "#60A5FA",
+          background: "rgba(59,130,246,0.08)",
+          border: "1px solid rgba(59,130,246,0.2)",
+          borderRadius: 6, padding: "4px 10px",
+          letterSpacing: "0.05em",
         }}>
           IBM Db2
         </div>

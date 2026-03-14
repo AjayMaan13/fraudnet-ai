@@ -76,8 +76,8 @@ export default function AlertFeed({ alerts, selectedId, onSelect }: Props) {
         )}
       </div>
 
-      {/* List */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 5 }}>
+      {/* List — fixed height scroll container */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 5, minHeight: 0 }}>
         {alerts.length === 0 ? (
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -112,6 +112,7 @@ export default function AlertFeed({ alerts, selectedId, onSelect }: Props) {
                 padding: "10px 12px",
                 position: "relative",
                 overflow: "hidden",
+                flexShrink: 0,
               }}
             >
               {/* Left accent bar */}
