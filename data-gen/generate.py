@@ -18,6 +18,7 @@ import random
 import sqlite3
 import uuid
 from datetime import datetime, timedelta
+from typing import Optional
 
 from faker import Faker
 
@@ -67,7 +68,7 @@ def init_db(conn: sqlite3.Connection):
 # ACCOUNT GENERATION
 # ─────────────────────────────────────────────
 
-def make_account(account_type: str = "personal", days_old: int = None) -> dict:
+def make_account(account_type: str = "personal", days_old: Optional[int] = None) -> dict:
     if days_old is None:
         days_old = random.randint(30, 1825)  # 1 month – 5 years old
     created_at = NOW - timedelta(days=days_old, hours=random.randint(0, 23))
@@ -101,7 +102,7 @@ def make_tx(from_id: str, to_id: str, amount: float, ts: datetime, tx_type: str,
         "id":           str(uuid.uuid4()),
         "from_account": from_id,
         "to_account":   to_id,
-        "amount":       round(amount, 2),
+        "amount":       round(float(amount), 2),
         "timestamp":    ts.isoformat(),
         "tx_type":      tx_type,
         "is_fraud":     1 if is_fraud else 0,
