@@ -207,6 +207,13 @@ async def ws_stream(websocket: WebSocket):
             "data": engine.get_graph_json(),
         })
 
+        # Send pre-existing alerts so they appear immediately on connect
+        for alert in engine.alerts:
+            await websocket.send_json({
+                "type": "alert",
+                "data": {k: v for k, v in alert.items() if k != "subgraph"},
+            })
+
         # Start replay in background
         replay_task = asyncio.create_task(replay_transactions(websocket))
 

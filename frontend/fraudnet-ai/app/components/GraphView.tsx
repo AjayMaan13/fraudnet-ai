@@ -57,12 +57,12 @@ export default function GraphView({ nodes, edges, highlightIds }: Props) {
           n.risk_level === "watch" ? 3 : 2
         )
         .nodeOpacity(0.9)
-        .linkColor((l: any) => l.tx_type?.startsWith("fraud") ? "#EF444460" : "#1A1A3580")
-        .linkWidth((l: any) => l.tx_type?.startsWith("fraud") ? 1.6 : 0.35)
-        .linkDirectionalParticles((l: any) => l.tx_type?.startsWith("fraud") ? 5 : 0)
-        .linkDirectionalParticleWidth(1.6)
-        .linkDirectionalParticleColor(() => "#EF4444")
-        .linkDirectionalParticleSpeed(0.005)
+        .linkColor((l: any) => l.tx_type?.startsWith("fraud") ? "#FF2222CC" : "#1A1A3560")
+        .linkWidth((l: any) => l.tx_type?.startsWith("fraud") ? 3 : 0.3)
+        .linkDirectionalParticles((l: any) => l.tx_type?.startsWith("fraud") ? 8 : 0)
+        .linkDirectionalParticleWidth(2.5)
+        .linkDirectionalParticleColor(() => "#FF4444")
+        .linkDirectionalParticleSpeed(0.008)
         .d3AlphaDecay(0.022)
         .d3VelocityDecay(0.38);
 

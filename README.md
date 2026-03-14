@@ -57,9 +57,58 @@ Create `backend/.env`:
 WATSONX_API_KEY=your_ibm_cloud_api_key
 WATSONX_PROJECT_ID=your_watsonx_project_id
 WATSONX_URL=https://ca-tor.ml.cloud.ibm.com
+
+DB2_HOSTNAME=your_db2_hostname
+DB2_PORT=30496
+DB2_DATABASE=BLUDB
+DB2_USERNAME=your_db2_username
+DB2_PASSWORD=your_db2_password
+DB2_SSL=true
 ```
 
+**watsonx.ai setup:**
+
+1. Create a project at [dataplatform.cloud.ibm.com/wx/home](https://dataplatform.cloud.ibm.com/wx/home)
+2. Associate a Watson Machine Learning service: project → Manage → Services & integrations → Associate service
+3. Copy the Project ID from: project → Manage → General
+
 If watsonx.ai is unavailable, the app falls back to pre-generated cached responses automatically.
+
+---
+
+## Restart Backend
+
+```bash
+# Kill existing process
+pkill -f "uvicorn backend.main"
+
+# Start fresh
+python3 -m uvicorn backend.main:app --reload --port 8000
+```
+
+---
+
+## Inject Additional Fraud Rings
+
+Add new circular money-laundering rings to the database using existing accounts.
+Rings are automatically synced to IBM Db2 and detected on the next backend restart.
+
+```bash
+python3 data-gen/inject_rings.py              # inject 3 rings (default)
+python3 data-gen/inject_rings.py --rings 5    # inject 5 rings
+python3 data-gen/inject_rings.py --rings 2 --min-size 3 --max-size 7
+```
+
+After injecting, restart the backend to pick up and detect the new rings.
+
+---
+
+## Test Connections
+
+```bash
+python3 backend/test_watsonx.py   # verify IBM watsonx.ai + Granite model
+python3 backend/test_db2.py       # verify IBM Db2 connection + data
+```
 
 ---
 

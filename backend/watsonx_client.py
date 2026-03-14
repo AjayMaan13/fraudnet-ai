@@ -71,32 +71,73 @@ def _build_prompt(subgraph: dict) -> str:
     nodes = subgraph.get("nodes", [])
     edges = subgraph.get("edges", [])
 
-    # Summarise to keep token count manageable
+    # Compute summary stats for richer context
+    amounts = [e.get("amount", 0) for e in edges]
+    total_amount = round(sum(amounts), 2)
+    avg_amount   = round(total_amount / len(amounts), 2) if amounts else 0
+    max_amount   = round(max(amounts), 2) if amounts else 0
+    fraud_edges  = [e for e in edges if str(e.get("tx_type", "")).startswith("fraud")]
+    account_types = list({n.get("account_type", "unknown") for n in nodes})
+    high_risk     = [n for n in nodes if n.get("risk_score", 0) >= 70]
+
     node_summary = [
-        {"id": n["id"][:8], "risk": n.get("risk_score", 0), "type": n.get("account_type", "?")}
+        {"id": n["id"][:8], "risk_score": n.get("risk_score", 0), "type": n.get("account_type", "?")}
         for n in nodes[:20]
     ]
     edge_summary = [
         {"from": e["source"][:8], "to": e["target"][:8],
-         "amount": e.get("amount", 0), "type": e.get("tx_type", "?")}
+         "amount": round(e.get("amount", 0), 2), "tx_type": e.get("tx_type", "?")}
         for e in edges[:30]
     ]
 
-    return f"""You are a financial fraud analyst AI. Analyze the following transaction subgraph and respond ONLY with valid JSON.
+    return f"""You are a senior financial crimes investigator at a major bank. Analyze this suspicious transaction network and produce a detailed fraud intelligence report in JSON.
 
-Subgraph summary:
-- Nodes (accounts): {json.dumps(node_summary)}
-- Edges (transactions): {json.dumps(edge_summary)}
+NETWORK STATISTICS:
+- Total accounts involved: {len(nodes)}
+- Total transactions: {len(edges)}
+- Fraud-flagged transactions: {len(fraud_edges)}
+- Total value at risk: ${total_amount:,.2f}
+- Average transaction: ${avg_amount:,.2f}
+- Largest transaction: ${max_amount:,.2f}
+- High-risk accounts (score >= 70): {len(high_risk)}
+- Account types present: {', '.join(account_types)}
 
-Provide your analysis in this exact JSON format:
+ACCOUNT NODES (risk_score 0-100):
+{json.dumps(node_summary, indent=2)}
+
+TRANSACTION EDGES:
+{json.dumps(edge_summary, indent=2)}
+
+Respond ONLY with this exact JSON structure — no markdown, no explanation:
 {{
-  "fraud_type": "<one of: Circular Money Laundering | Structuring / Smurfing | Money Mule Network | Suspicious Activity>",
-  "confidence": "<High | Medium | Low>",
-  "evidence": ["<bullet 1>", "<bullet 2>", "<bullet 3>"],
-  "recommendations": ["<action 1>", "<action 2>", "<action 3>"]
-}}
-
-Respond with JSON only. No explanation, no markdown."""
+  "fraud_type": "<one of: Circular Money Laundering | Structuring / Smurfing | Money Mule Network | Layering Scheme | Suspicious Activity>",
+  "confidence": "<Critical | High | Medium | Low>",
+  "severity": "<one of: Critical | High | Medium | Low>",
+  "pattern_summary": "<2-3 sentence technical description of the fraud pattern observed, referencing specific amounts and account counts>",
+  "evidence": [
+    "<specific evidence point 1 with amounts/counts>",
+    "<specific evidence point 2>",
+    "<specific evidence point 3>",
+    "<specific evidence point 4>",
+    "<specific evidence point 5>"
+  ],
+  "risk_indicators": [
+    "<red flag 1>",
+    "<red flag 2>",
+    "<red flag 3>"
+  ],
+  "regulatory_flags": [
+    "<regulatory concern 1, e.g. BSA/AML threshold, SAR filing>",
+    "<regulatory concern 2>"
+  ],
+  "recommendations": [
+    "<immediate action 1>",
+    "<immediate action 2>",
+    "<investigative step 3>",
+    "<preventive measure 4>"
+  ],
+  "investigation_priority": "<Immediate | Urgent | Standard>"
+}}"""
 
 
 # ─────────────────────────────────────────────
@@ -168,7 +209,7 @@ async def get_fraud_explanation(subgraph: dict) -> dict:
             "input":      prompt,
             "parameters": {
                 "decoding_method":  "greedy",
-                "max_new_tokens":   600,
+                "max_new_tokens":   900,
                 "temperature":      0.1,
                 "repetition_penalty": 1.05,
             },
@@ -196,10 +237,16 @@ async def get_fraud_explanation(subgraph: dict) -> dict:
 
         result = json.loads(raw_text)
 
-        # Validate expected keys
+        # Validate required keys
         for key in ("fraud_type", "confidence", "evidence", "recommendations"):
             if key not in result:
                 raise ValueError(f"Missing key in response: {key}")
+        # Default optional fields if model omitted them
+        result.setdefault("severity", result.get("confidence", "Medium"))
+        result.setdefault("pattern_summary", "")
+        result.setdefault("risk_indicators", [])
+        result.setdefault("regulatory_flags", [])
+        result.setdefault("investigation_priority", "Standard")
 
         result["source"] = "live"
         return result
