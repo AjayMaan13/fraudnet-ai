@@ -51,11 +51,9 @@ export default function GraphView({ nodes, edges, highlightIds }: Props) {
           </div>`
         )
         .nodeColor((n: any) => RISK_COLOR[n.risk_level] || "#3B82F6")
-        .nodeVal((n: any) =>
-          n.risk_level === "fraud" ? 7 :
-          n.risk_level === "suspicious" ? 5 :
-          n.risk_level === "watch" ? 3 : 2
-        )
+        // Node size = continuous risk_score scale: score 0→100 maps to val 1→8
+        // nodeVal is proportional to sphere volume, so we keep the range tight
+        .nodeVal((n: any) => 1 + (n.risk_score / 100) * 7)
         .nodeOpacity(0.9)
         .linkColor((l: any) => l.tx_type?.startsWith("fraud") ? "#FF2222CC" : "#1A1A3560")
         .linkWidth((l: any) => l.tx_type?.startsWith("fraud") ? 3 : 0.3)
@@ -191,24 +189,45 @@ export default function GraphView({ nodes, edges, highlightIds }: Props) {
       {/* Legend — bottom left */}
       <div className="glass" style={{
         position: "absolute", bottom: 16, left: 16,
-        display: "flex", alignItems: "center", gap: 14,
-        borderRadius: 9, padding: "7px 16px",
+        borderRadius: 9, padding: "8px 14px",
+        display: "flex", flexDirection: "column", gap: 7,
       }}>
-        {Object.entries(RISK_COLOR).map(([level, color]) => (
-          <div key={level} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{
-              width: 8, height: 8, borderRadius: "50%",
-              background: color,
-              boxShadow: `0 0 6px ${color}90`,
-            }} />
-            <span style={{
-              fontSize: 10, color: "var(--muted)",
-              textTransform: "capitalize", letterSpacing: "0.04em",
-            }}>
-              {level}
-            </span>
-          </div>
-        ))}
+        {/* Color legend */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {Object.entries(RISK_COLOR).map(([level, color]) => (
+            <div key={level} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: color, boxShadow: `0 0 6px ${color}90`,
+              }} />
+              <span style={{ fontSize: 9, color: "var(--muted)", textTransform: "capitalize", letterSpacing: "0.04em" }}>
+                {level}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Size legend */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, borderTop: "1px solid var(--border)", paddingTop: 6 }}>
+          <span style={{ fontSize: 8, color: "var(--muted)", letterSpacing: "0.06em", textTransform: "uppercase", marginRight: 2 }}>
+            Size = Risk Score
+          </span>
+          {[
+            { label: "0",   size: 5  },
+            { label: "25",  size: 7  },
+            { label: "50",  size: 10 },
+            { label: "75",  size: 13 },
+            { label: "100", size: 16 },
+          ].map(({ label, size }) => (
+            <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+              <div style={{
+                width: size, height: size, borderRadius: "50%",
+                background: "var(--muted)", opacity: 0.5,
+              }} />
+              <span style={{ fontSize: 7, color: "var(--muted)", opacity: 0.7 }}>{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Fraud particle hint — bottom right, only if fraud edges present */}
