@@ -8,6 +8,41 @@ import random
 import uuid
 from datetime import datetime, timedelta
 
+# Realistic account holder names — 100 entries (personal + business mix)
+_NAMES = [
+    # Personal — 60 names
+    "James Harrington", "Sofia Delacroix", "Marcus Webb", "Priya Nair",
+    "Ethan Caldwell", "Layla Okafor", "Noah Steinberg", "Amara Diallo",
+    "Lucas Ferreira", "Isabelle Moreau", "Aiden Kowalski", "Fatima Al-Rashid",
+    "Caleb Thornton", "Yuna Park", "Declan O'Brien", "Valentina Cruz",
+    "Ravi Menon", "Zoe Blackwood", "Omar Hassan", "Chloe Beaumont",
+    "Finn Gallagher", "Nadia Volkov", "Samuel Osei", "Mei Lin Chen",
+    "Aaron Whitfield", "Elena Vasquez", "Dominic Fontaine", "Amelia Sutton",
+    "Kieran Malone", "Hana Kimura", "Tyler Marsh", "Ingrid Larsson",
+    "Xavier Dupont", "Aaliyah Brooks", "Connor MacLeod", "Leila Ahmadi",
+    "Jordan Reeves", "Tanya Sokolova", "Miles Ashford", "Chiara Romano",
+    "Devin Nakamura", "Astrid Bergström", "Elijah Kamau", "Beatrix Hoffmann",
+    "Rowan Sinclair", "Keiko Tanaka", "Andre Leclerc", "Simone Adeyemi",
+    "Patrick Brennan", "Yara Khalil", "Sebastian Torres", "Freya Johansson",
+    "Isaiah Okonkwo", "Margot Dubois", "Liam Fitzgerald", "Aisha Bangura",
+    "Rafael Medina", "Seren Patel", "Hugo Brandt", "Camille Laurent",
+    # Business — 40 names
+    "Apex Capital LLC", "BlueLine Trading Co.", "Meridian Holdings",
+    "Sterling Bridge Partners", "Onyx Ventures Group", "Crestwood Financial",
+    "Irongate Investments", "Pinnacle Asset Trust", "Redwood Commerce Inc.",
+    "Lakeview Enterprises", "Summit Trade Solutions", "Northstar Capital",
+    "Cascade Equity Group", "Harbor Point LLC", "Vantage Credit Corp.",
+    "Solaris Fund Management", "Cobalt Street Partners", "Westfield Trading",
+    "Arclight Advisors", "Driftwood Capital", "Keystone Merchant Group",
+    "Veritas Finance LLC", "Luminary Holdings", "Stonegate Partners",
+    "Clearwater Asset Co.", "Goldcrest Ventures", "Highbridge Capital",
+    "Crossroads Trade Inc.", "Seaport Holdings", "Eastbridge LLC",
+    "Monarch Financial Group", "Ridgeline Equity", "Foxhill Capital",
+    "Latitude Investments", "Broadmoor Partners", "Tidewater Commerce",
+    "Skyline Asset Management", "Orion Trade Group", "Delta Equity Fund",
+    "Starboard Capital LLC",
+]
+
 
 def generate_demo_data(
     n_accounts:    int = 100,
@@ -29,11 +64,20 @@ def generate_demo_data(
 
     # ── Accounts ───────────────────────────────────────────────
     type_pool = (["personal"] * 7) + (["business"] * 2) + (["savings"] * 1)
+
+    # Shuffle the name list and cycle through it so every account gets a unique
+    # realistic name regardless of how many accounts are requested (up to 100;
+    # beyond that names wrap with a numeric suffix to stay distinct).
+    name_pool = _NAMES.copy()
+    random.shuffle(name_pool)
+
     accounts: list[dict] = []
-    for _ in range(n_accounts):
+    for i in range(n_accounts):
+        base_name = name_pool[i % len(name_pool)]
+        name = base_name if i < len(name_pool) else f"{base_name} {i // len(name_pool) + 2}"
         accounts.append({
             "id":           str(uuid.uuid4()),
-            "name":         f"Acct-{random.randint(1000, 9999)}",
+            "name":         name,
             "account_type": random.choice(type_pool),
             "created_at":   (now - timedelta(days=random.randint(1, 730))).isoformat(),
         })
