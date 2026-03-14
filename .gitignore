@@ -1,0 +1,17 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Data
+data-gen/*.db
+data-gen/*.json
+
+# Node
+frontend/fraudnet-ai/node_modules/
+frontend/fraudnet-ai/.next/
+
+# Misc
+.DS_Store

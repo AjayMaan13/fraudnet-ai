@@ -6,27 +6,30 @@
 
 ---
 
-## ⚠️ REPO STATE (as of notes creation)
+## ✅ REPO STATE (clean — verified 2026-03-14)
 
 ```
 fraudnet-ai/
-├── backend/          ← EMPTY (only has a spurious `path/` dir from bad venv command — ignore/delete it)
-├── data-gen/         ← EMPTY
+├── backend/                ← EMPTY — ready for Python files
+├── data-gen/               ← EMPTY — ready for generate.py
 ├── frontend/
-│   ├── fraudnet-ai/  ← ✅ Next.js 15 + Tailwind + TypeScript app lives HERE
-│   └── node_modules/ ← d3 was installed here (wrong dir — reinstall inside frontend/fraudnet-ai/)
-├── instructions.md
-└── IMPLEMENTATION_NOTES.md
+│   └── fraudnet-ai/        ← ✅ Next.js 16 + Tailwind + TypeScript app
+│       ├── app/            ← App Router pages/components go here
+│       ├── public/
+│       ├── package.json    ← has d3@7.9 + @types/d3@7.4 installed ✅
+│       └── node_modules/
+├── IMPLEMENTATION_NOTES.md
+└── instructions.md
 ```
 
 ### Key path facts:
-- **Frontend root:** `/Users/goraya/AJ/Github OOS/fraudnet-ai/frontend/fraudnet-ai/`
-  - Next.js 15, TypeScript, Tailwind CSS, App Router
-  - **d3 is NOT installed here yet** — `npm install d3 @types/d3` must be run inside `frontend/fraudnet-ai/`
-- **Backend root:** `/Users/goraya/AJ/Github OOS/fraudnet-ai/backend/`
-  - Python deps installed globally (fastapi, uvicorn, networkx, faker, python-dotenv, httpx, websockets)
-  - No venv — run scripts directly with `python3`
-- **Data gen root:** `/Users/goraya/AJ/Github OOS/fraudnet-ai/data-gen/`
+- **Frontend root:** `frontend/fraudnet-ai/` — this is where `npm run dev` is run
+  - Next.js 16, TypeScript, Tailwind CSS v4, App Router
+  - **d3@7.9 + @types/d3 installed ✅**
+- **Backend root:** `backend/` — all `.py` files go here directly
+  - Python deps installed globally: fastapi, uvicorn, networkx, faker, python-dotenv, httpx, websockets
+  - Run with: `python3 -m uvicorn backend.main:app --reload --port 8000` (from repo root)
+- **Data gen:** `data-gen/generate.py` — run with `python3 data-gen/generate.py` from repo root
 
 ---
 
