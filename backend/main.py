@@ -36,6 +36,9 @@ engine: FraudGraphEngine
 start_time: float
 all_transactions: list[dict] = []
 connected_clients: set[WebSocket] = set()
+# Account metadata for replay — populated by demo_start so the replay engine
+# can add nodes with proper name/account_type instead of bare defaults.
+demo_account_meta: dict[str, dict] = {}
 
 
 # ─────────────────────────────────────────────
@@ -205,12 +208,16 @@ async def demo_start(config: DemoConfig):
     # Sort so normal txns (is_fraud=0) load first; fraud txns (is_fraud=1) load last.
     # DiGraph keeps the last edge for any (src, dst) pair, so fraud edges won't be
     # silently overwritten by a normal transaction on the same node pair.
+    global demo_account_meta
+    demo_account_meta = {a["id"]: a for a in accounts}
+
     txns_ordered = sorted(txns, key=lambda t: t["is_fraud"])
     engine = FraudGraphEngine(str(DB_PATH))
     engine.load_from_data(accounts, txns_ordered)
     engine.calculate_risk_scores()
 
-    # Use demo transactions as the replay source
+    # Use demo transactions as the replay source — sorted oldest→newest so
+    # fraud edges (recent timestamps) arrive at the end, exactly when detection fires.
     all_transactions = sorted(txns, key=lambda t: t["timestamp"])
 
     print(f"  Demo mode: {engine.G.number_of_nodes()} nodes, "
@@ -263,18 +270,19 @@ async def ws_stream(websocket: WebSocket):
     print(f"  WebSocket client connected ({len(connected_clients)} total)")
 
     try:
-        # Send initial graph snapshot
+        # Send an initial snapshot: nodes only (with proper metadata) but
+        # all risk scores reset to 0 and NO edges.  The replay task will
+        # stream transactions one-by-one so the graph and fraud alerts
+        # appear to build up live — nothing is pre-detected or pre-blasted.
+        graph_data = engine.get_graph_json()
+        clean_nodes = [
+            {**n, "risk_score": 0.0, "risk_level": "clean"}
+            for n in graph_data["nodes"]
+        ]
         await websocket.send_json({
             "type": "snapshot",
-            "data": engine.get_graph_json(),
+            "data": {"nodes": clean_nodes, "edges": []},
         })
-
-        # Send pre-existing alerts so they appear immediately on connect
-        for alert in engine.alerts:
-            await websocket.send_json({
-                "type": "alert",
-                "data": {k: v for k, v in alert.items() if k != "subgraph"},
-            })
 
         # Start replay in background
         replay_task = asyncio.create_task(replay_transactions(websocket))
@@ -300,43 +308,46 @@ async def ws_stream(websocket: WebSocket):
 
 async def replay_transactions(websocket: WebSocket):
     """
-    Replay all transactions in timestamp order, simulating real-time ingestion.
-    Time compression: 7 days of data → ~10 minutes of replay
-      7 days = 604,800 seconds → divide by 1000 → sleep ~0.6s per simulated 10min block
-    We batch by time buckets and sleep 0.05s per tx (~20 tx/s feels live).
+    Replay transactions in chronological order (~40 tx/s).
+
+    Normal transactions (older timestamps) arrive first; fraud transactions
+    (recent timestamps) arrive at the end — exactly when detection fires.
+
+    Detection runs every 30 edges.  Alerts and risk_update messages are only
+    sent when freshly detected, so the frontend sees them build up live.
     """
     if not all_transactions:
         return
 
-    # Track which alerts have been emitted already
-    emitted_alert_ids: set[str] = set()
-    for a in engine.alerts:
-        emitted_alert_ids.add(a["id"])  # pre-existing alerts already in snapshot
-
-    # Build a fresh engine for incremental replay
-    replay_engine = FraudGraphEngine(str(DB_PATH))
-    # Start with empty graph — we add transactions one by one
     import networkx as nx
+
+    # Fresh replay engine — no pre-loaded data, discovers everything from scratch
+    replay_engine = FraudGraphEngine(str(DB_PATH))
     replay_engine.G = nx.DiGraph()
+
+    emitted_alert_ids: set[str] = set()   # nothing pre-emitted
 
     try:
         for txn in all_transactions:
             if not _is_connected(websocket):
                 break
 
-            await asyncio.sleep(0.05)  # ~20 transactions/second
+            await asyncio.sleep(0.025)   # ~40 transactions / second
 
-            # Add to replay graph
+            # Add transaction, restoring proper node metadata from demo accounts
             replay_engine.add_transaction(txn)
+            for acc_id in (txn["from_account"], txn["to_account"]):
+                meta = demo_account_meta.get(acc_id, {})
+                if meta and acc_id in replay_engine.G:
+                    replay_engine.G.nodes[acc_id].update({
+                        "name":         meta.get("name", ""),
+                        "account_type": meta.get("account_type", "personal"),
+                    })
 
-            # Send transaction event
-            await websocket.send_json({
-                "type": "transaction",
-                "data": txn,
-            })
+            await websocket.send_json({"type": "transaction", "data": txn})
 
-            # Every 50 transactions, check for new fraud alerts and send risk update
-            if replay_engine.G.number_of_edges() % 50 == 0:
+            # Every 30 edges: run detection, emit any new alerts + risk update
+            if replay_engine.G.number_of_edges() % 30 == 0:
                 new_alerts = replay_engine.check_new_alerts()
                 for alert in new_alerts:
                     if alert["id"] not in emitted_alert_ids:
@@ -345,24 +356,28 @@ async def replay_transactions(websocket: WebSocket):
                             "type": "alert",
                             "data": {k: v for k, v in alert.items() if k != "subgraph"},
                         })
-                        await websocket.send_json({
-                            "type": "risk_update",
-                            "data": replay_engine.get_risk_scores(),
-                        })
 
-        # Final risk update after all transactions
-        await websocket.send_json({
-            "type": "risk_update",
-            "data": engine.get_risk_scores(),
-        })
+                await websocket.send_json({
+                    "type": "risk_update",
+                    "data": replay_engine.get_risk_scores(),
+                })
 
-        # Emit any alerts that the pre-loaded engine found but weren't sent during replay
-        for alert in engine.alerts:
+        # ── Post-replay: final pass with the fully-built engine ──────────────
+        # Run detection one more time in case the last batch didn't hit the
+        # modulo boundary, then send a final authoritative risk update.
+        final_alerts = replay_engine.check_new_alerts()
+        for alert in final_alerts:
             if alert["id"] not in emitted_alert_ids:
+                emitted_alert_ids.add(alert["id"])
                 await websocket.send_json({
                     "type": "alert",
                     "data": {k: v for k, v in alert.items() if k != "subgraph"},
                 })
+
+        await websocket.send_json({
+            "type": "risk_update",
+            "data": replay_engine.get_risk_scores(),
+        })
 
     except (WebSocketDisconnect, asyncio.CancelledError):
         pass
