@@ -118,6 +118,24 @@ class DemoConfig(BaseModel):
 # REST ENDPOINTS
 # ─────────────────────────────────────────────
 
+@app.get("/db2/status")
+async def db2_status():
+    """Check IBM Db2 connection and return row counts."""
+    try:
+        from backend.db2_client import get_db2_connection, get_counts, DB2_DSN
+        if not DB2_DSN:
+            return {"connected": False, "reason": "no_credentials"}
+        conn   = get_db2_connection()
+        counts = get_counts(conn)
+        return {
+            "connected":    True,
+            "accounts":     counts["accounts"],
+            "transactions": counts["transactions"],
+        }
+    except Exception as e:
+        return {"connected": False, "reason": str(e)}
+
+
 @app.get("/graph")
 async def get_graph():
     """Full graph: nodes with risk scores + all edges."""
