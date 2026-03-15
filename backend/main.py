@@ -118,6 +118,46 @@ class DemoConfig(BaseModel):
 # REST ENDPOINTS
 # ─────────────────────────────────────────────
 
+@app.post("/db2/load")
+async def db2_load():
+    """
+    Load data from IBM Db2 (falls back to SQLite if unavailable) and
+    broadcast a demo_reset so all WS clients replay it live.
+    """
+    global engine, all_transactions, demo_account_meta
+
+    from backend.db2_client import load_transactions_with_fallback
+
+    accounts, txns, source = load_transactions_with_fallback()
+
+    demo_account_meta = {a["id"]: a for a in accounts}
+    txns_ordered = sorted(txns, key=lambda t: t["is_fraud"])
+    engine = FraudGraphEngine(str(DB_PATH))
+    engine.load_from_data(accounts, txns_ordered)
+    engine.calculate_risk_scores()
+    all_transactions = sorted(txns, key=lambda t: t["timestamp"])
+
+    print(f"  Db2 load ({source}): {engine.G.number_of_nodes()} nodes, "
+          f"{engine.G.number_of_edges()} edges, {len(engine.alerts)} alerts")
+
+    msg = {"type": "demo_reset"}
+    dead: set[WebSocket] = set()
+    for ws in list(connected_clients):
+        try:
+            await ws.send_json(msg)
+        except Exception:
+            dead.add(ws)
+    connected_clients.difference_update(dead)
+
+    return {
+        "status":  "ok",
+        "source":  source,
+        "nodes":   engine.G.number_of_nodes(),
+        "edges":   engine.G.number_of_edges(),
+        "alerts":  len(engine.alerts),
+    }
+
+
 @app.get("/db2/status")
 async def db2_status():
     """Check IBM Db2 connection and return row counts."""

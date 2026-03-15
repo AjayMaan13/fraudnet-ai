@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [panelWidth, setPanelWidth]       = useState(340);   // sidebar width px
   const [hasLaunched, setHasLaunched]     = useState(false);
   const [showReconfig, setShowReconfig]   = useState(false);
+  const [db2Loading, setDb2Loading]       = useState(false);
   const sidebarRef    = useRef<HTMLDivElement>(null);
   const containerRef  = useRef<HTMLDivElement>(null);
   const dragging      = useRef(false);
@@ -122,10 +123,10 @@ export default function Dashboard() {
         <div style={{ flex: 1, overflow: "hidden", position: "relative", minHeight: 0 }}>
           <GraphView nodes={nodes} edges={edges} highlightIds={highlightIds} />
 
-          {/* Reconfigure button — top center */}
+          {/* Top center buttons */}
           <div style={{
             position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)",
-            zIndex: 10,
+            zIndex: 10, display: "flex", gap: 8, alignItems: "center",
           }}>
             <button
               onClick={() => setShowReconfig(true)}
@@ -141,16 +142,57 @@ export default function Dashboard() {
                 transition: "all 0.15s",
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background   = "rgba(99,102,241,0.22)";
-                e.currentTarget.style.borderColor  = "rgba(99,102,241,0.5)";
+                e.currentTarget.style.background  = "rgba(99,102,241,0.22)";
+                e.currentTarget.style.borderColor = "rgba(99,102,241,0.5)";
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background   = "rgba(99,102,241,0.12)";
-                e.currentTarget.style.borderColor  = "rgba(99,102,241,0.3)";
+                e.currentTarget.style.background  = "rgba(99,102,241,0.12)";
+                e.currentTarget.style.borderColor = "rgba(99,102,241,0.3)";
               }}
             >
               <span style={{ fontSize: 12 }}>⚙</span>
               Reconfigure
+            </button>
+
+            <button
+              disabled={db2Loading}
+              onClick={async () => {
+                setDb2Loading(true);
+                try {
+                  await fetch("http://localhost:8000/db2/load", { method: "POST" });
+                  setHasLaunched(true);
+                  setSelectedAlert(null);
+                } finally {
+                  setDb2Loading(false);
+                }
+              }}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700,
+                cursor: db2Loading ? "not-allowed" : "pointer",
+                background: "rgba(59,130,246,0.10)",
+                border: "1px solid rgba(59,130,246,0.28)",
+                color: "#60A5FA",
+                backdropFilter: "blur(10px)",
+                letterSpacing: "0.03em",
+                transition: "all 0.15s",
+                opacity: db2Loading ? 0.6 : 1,
+              }}
+              onMouseEnter={e => {
+                if (!db2Loading) {
+                  e.currentTarget.style.background  = "rgba(59,130,246,0.20)";
+                  e.currentTarget.style.borderColor = "rgba(59,130,246,0.5)";
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background  = "rgba(59,130,246,0.10)";
+                e.currentTarget.style.borderColor = "rgba(59,130,246,0.28)";
+              }}
+            >
+              {db2Loading
+                ? <><span style={{ animation: "spin-slow 1s linear infinite", display: "inline-block" }}>◌</span> Loading…</>
+                : <><span style={{ fontSize: 12 }}>🗄</span> Load Db2 Dataset</>
+              }
             </button>
           </div>
         </div>
