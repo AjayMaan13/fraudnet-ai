@@ -371,10 +371,13 @@ async def ws_stream(websocket: WebSocket):
 
 async def replay_transactions(websocket: WebSocket):
     """
-    Replay transactions in chronological order (~40 tx/s).
+    Replay transactions in chronological order.
 
     Normal transactions (older timestamps) arrive first; fraud transactions
     (recent timestamps) arrive at the end — exactly when detection fires.
+
+    Speed is adaptive: normal txns finish in ~5 s regardless of dataset size.
+    Fraud txns are slowed to 50 ms each so detection feels live and dramatic.
 
     Detection runs every 30 edges.  Alerts and risk_update messages are only
     sent when freshly detected, so the frontend sees them build up live.
@@ -390,12 +393,19 @@ async def replay_transactions(websocket: WebSocket):
 
     emitted_alert_ids: set[str] = set()   # nothing pre-emitted
 
+    # Adaptive delay: target ~5 s for all normal transactions
+    TARGET_NORMAL_SECS = 5.0
+    normal_count = sum(1 for t in all_transactions if not t.get("is_fraud"))
+    normal_delay = max(0.001, TARGET_NORMAL_SECS / max(normal_count, 1))
+    fraud_delay  = 0.05  # slow reveal for dramatic fraud detection
+
     try:
         for txn in all_transactions:
             if not _is_connected(websocket):
                 break
 
-            await asyncio.sleep(0.025)   # ~40 transactions / second
+            delay = fraud_delay if txn.get("is_fraud") else normal_delay
+            await asyncio.sleep(delay)
 
             # Add transaction, restoring proper node metadata from demo accounts
             replay_engine.add_transaction(txn)

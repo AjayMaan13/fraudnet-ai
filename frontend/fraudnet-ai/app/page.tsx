@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AIExplanation from "./components/AIExplanation";
 import AlertFeed from "./components/AlertFeed";
 import DemoModal from "./components/DemoModal";
@@ -21,9 +21,14 @@ export default function Dashboard() {
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [splitPct, setSplitPct]           = useState(56);
   const [panelWidth, setPanelWidth]       = useState(340);   // sidebar width px
-  const [hasLaunched, setHasLaunched]     = useState(false);
+  const [hasLaunched, setHasLaunched]     = useState(true);   // always show dashboard
   const [showReconfig, setShowReconfig]   = useState(false);
   const [db2Loading, setDb2Loading]       = useState(false);
+
+  // Auto-load Db2/SQLite data on first mount
+  useEffect(() => {
+    fetch(`${HTTP_BASE}/db2/load`, { method: "POST" }).catch(() => {});
+  }, []);
   const sidebarRef    = useRef<HTMLDivElement>(null);
   const containerRef  = useRef<HTMLDivElement>(null);
   const dragging      = useRef(false);
@@ -98,11 +103,6 @@ export default function Dashboard() {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   }, []);
-
-  // ── Launch screen ────────────────────────────────────────────────────────
-  if (!hasLaunched) {
-    return <LaunchScreen onLaunch={handleLaunch} />;
-  }
 
   // ── Dashboard ────────────────────────────────────────────────────────────
   return (
