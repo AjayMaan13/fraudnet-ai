@@ -6,8 +6,8 @@ __pycache__/
 .env
 
 # Data
-data-gen/*.db
-data-gen/*.json
+data-gen/generate.py
+data-gen/inject_rings.py
 
 # Node
 frontend/fraudnet-ai/node_modules/
