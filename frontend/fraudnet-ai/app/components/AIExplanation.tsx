@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Alert } from "./useWebSocket";
+import { HTTP_BASE } from "../lib/api";
 
 interface Explanation {
   fraud_type: string;
@@ -46,7 +47,7 @@ export default function AIExplanation({ alert }: Props) {
     abortRef.current = new AbortController();
     setLoading(true); setError(null); setResult(null);
 
-    fetch("http://localhost:8000/analyze", {
+    fetch(`${HTTP_BASE}/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ account_ids: alert.accounts }),

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Stats } from "./useWebSocket";
+import Db2StatusButton from "./Db2StatusButton";
 
 interface Props {
   stats: Stats;
@@ -142,16 +143,8 @@ export default function StatsBar({ stats, isConnected, txCount }: Props) {
             watsonx.ai
           </span>
         </div>
-        {/* Db2 badge */}
-        <div style={{
-          fontSize: 9, fontWeight: 600, color: "#60A5FA",
-          background: "rgba(59,130,246,0.08)",
-          border: "1px solid rgba(59,130,246,0.2)",
-          borderRadius: 6, padding: "4px 10px",
-          letterSpacing: "0.05em",
-        }}>
-          IBM Db2
-        </div>
+        {/* Db2 connect button */}
+        <Db2StatusButton />
 
         {/* Connection pill */}
         <div style={{

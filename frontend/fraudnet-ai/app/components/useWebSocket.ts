@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { HTTP_BASE, WS_BASE } from "../lib/api";
 
 export interface GraphNode {
   id: string;
@@ -42,9 +43,10 @@ interface WebSocketState {
   stats: Stats;
   isConnected: boolean;
   txCount: number;
+  isDemoMode: boolean;
 }
 
-const WS_URL = "ws://localhost:8000/ws/stream";
+const WS_URL = `${WS_BASE}/ws/stream`;
 
 const DEFAULT_STATS: Stats = {
   total_txns: 0,
@@ -62,6 +64,7 @@ export function useWebSocket() {
     stats: DEFAULT_STATS,
     isConnected: false,
     txCount: 0,
+    isDemoMode: false,
   });
 
   const wsRef      = useRef<WebSocket | null>(null);
@@ -122,6 +125,23 @@ export function useWebSocket() {
           },
         }));
 
+      } else if (msg.type === "demo_reset") {
+        // Backend has new demo data — clear state and reconnect quickly
+        nodesRef.current.clear();
+        edgesRef.current = [];
+        setState(s => ({
+          ...s,
+          nodes: [],
+          edges: [],
+          alerts: [],
+          stats: DEFAULT_STATS,
+          txCount: 0,
+          isDemoMode: true,
+        }));
+        // Override backoff so onclose reconnects in 200ms instead of 1000ms+
+        retryDelay.current = 200;
+        ws.close();
+
       } else if (msg.type === "risk_update") {
         const updates = msg.data as Record<string, number>;
         for (const [id, score] of Object.entries(updates)) {
@@ -156,7 +176,7 @@ export function useWebSocket() {
   useEffect(() => {
     const poll = setInterval(async () => {
       try {
-        const r = await fetch("http://localhost:8000/stats");
+        const r = await fetch(`${HTTP_BASE}/stats`);
         if (r.ok) {
           const data: Stats = await r.json();
           setState(s => ({ ...s, stats: data }));
@@ -174,5 +194,12 @@ export function useWebSocket() {
     };
   }, [connect]);
 
-  return state;
+  const reconnect = useCallback(() => {
+    if (retryRef.current) clearTimeout(retryRef.current);
+    wsRef.current?.close();
+    retryDelay.current = 1000;
+    setTimeout(connect, 300);
+  }, [connect]);
+
+  return { ...state, reconnect };
 }

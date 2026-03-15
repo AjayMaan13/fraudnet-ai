@@ -17,7 +17,7 @@ const RISK_COLOR: Record<string, string> = {
 };
 
 const MAX_NODES = 300;
-const UPDATE_MS = 2000;
+const UPDATE_MS = 400;
 
 export default function GraphView({ nodes, edges, highlightIds }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);

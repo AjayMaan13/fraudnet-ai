@@ -2,7 +2,7 @@
 
 Real-time financial fraud detection powered by graph analysis and IBM watsonx.ai.
 
-Transactions stream live into a 3D force-directed graph. Fraud rings, mule networks, and structuring patterns are detected automatically and explained by IBM Granite AI.
+Configure a simulation, watch transactions stream live into a 3D force-directed graph, and see fraud rings, mule networks, and structuring patterns detected automatically and explained by IBM Granite AI.
 
 ---
 
@@ -10,54 +10,62 @@ Transactions stream live into a 3D force-directed graph. Fraud rings, mule netwo
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 16, TypeScript, Tailwind CSS, 3d-force-graph (WebGL) |
+| Frontend | Next.js 15, TypeScript, 3d-force-graph (WebGL) |
 | Backend | Python, FastAPI, WebSocket |
-| Graph Engine | NetworkX — cycle detection, PageRank, burst analysis |
+| Graph Engine | NetworkX — cycle detection, sliding-window burst/fanout analysis |
 | AI Analysis | IBM watsonx.ai — Granite 3 8B Instruct |
-| Database | IBM Db2 (ca-tor) · SQLite fallback |
-| Data | Synthetic generator — 500 accounts, 5000+ transactions, 3 fraud patterns |
+| Database | IBM Db2 · SQLite fallback |
+| Data | In-memory synthetic generator — configurable accounts, transactions, fraud patterns |
 
 ---
 
 ## Fraud Patterns Detected
 
-- **Circular Money Laundering** — closed transaction loops (A→B→C→A) with 8% layering fee
-- **Structuring / Smurfing** — fan-out transfers just under $10K reporting threshold
-- **Burst / Mule Network** — large deposit dispersed to 10+ new accounts in 30 minutes
+- **Circular Money Laundering** — closed transaction loops (A→B→C→A) with layering fee
+- **Structuring / Smurfing** — fan-out transfers just under $10K reporting threshold to 5+ recipients
+- **Burst / Mule Network** — large deposit dispersed to 8+ accounts within 30 minutes
+
+---
+
+## How It Works
+
+1. Open the app — a launch screen lets you configure the simulation parameters
+2. Hit **Generate Simulation** — the backend creates synthetic accounts and transactions in memory
+3. Transactions replay at ~40/s over WebSocket, building the graph live
+4. The fraud detection engine runs every 30 edges and emits alerts progressively as patterns emerge
+5. Click any alert to get a full AI explanation from IBM Granite
 
 ---
 
 ## Setup
 
-**1. Generate data**
-```bash
-python3 data-gen/generate.py
-```
-
-**2. Start backend**
+**1. Start backend**
 ```bash
 python3 -m uvicorn backend.main:app --reload --port 8000
 ```
 
-**3. Start frontend**
+**2. Start frontend**
 ```bash
 cd frontend/fraudnet-ai
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000) — no data generation step needed, the simulation is configured in the browser.
 
 ---
 
-## Environment Variables
+## Environment Variables (optional)
 
-Create `backend/.env`:
+Create `backend/.env` to enable IBM cloud integrations:
+
 ```
+# IBM watsonx.ai — for live AI explanations
 WATSONX_API_KEY=your_ibm_cloud_api_key
 WATSONX_PROJECT_ID=your_watsonx_project_id
 WATSONX_URL=https://ca-tor.ml.cloud.ibm.com
 
+# IBM Db2 — see note below
 DB2_HOSTNAME=your_db2_hostname
 DB2_PORT=30496
 DB2_DATABASE=BLUDB
@@ -66,59 +74,39 @@ DB2_PASSWORD=your_db2_password
 DB2_SSL=true
 ```
 
+Both integrations are **optional** — the app runs fully without them:
+
+- If watsonx.ai credentials are missing, AI explanations fall back to pre-cached Granite responses
+- If Db2 credentials are missing, the app uses SQLite automatically
+
 **watsonx.ai setup:**
 
 1. Create a project at [dataplatform.cloud.ibm.com/wx/home](https://dataplatform.cloud.ibm.com/wx/home)
 2. Associate a Watson Machine Learning service: project → Manage → Services & integrations → Associate service
 3. Copy the Project ID from: project → Manage → General
 
-If watsonx.ai is unavailable, the app falls back to pre-generated cached responses automatically.
-
 ---
 
-## Restart Backend
+## IBM Db2 Integration
 
-```bash
-# Kill existing process
-pkill -f "uvicorn backend.main"
+The backend includes a full IBM Db2 client (`backend/db2_client.py`) that connects to an IBM Cloud Db2 instance, auto-creates the schema, migrates data from SQLite on first run, and serves transactions from the cloud database.
 
-# Start fresh
-python3 -m uvicorn backend.main:app --reload --port 8000
-```
+This integration was built and tested during development using an IBM Cloud trial instance. **The trial instance has since expired**, so the app currently runs on the SQLite fallback — handled automatically at startup with no code changes needed. To reconnect to a live Db2 instance, add the credentials to `backend/.env` as shown above.
 
----
+During development, Db2 stored **5,000 transactions** and **500 accounts** on IBM Cloud (ca-tor region).
 
-## Inject Additional Fraud Rings
-
-Add new circular money-laundering rings to the database using existing accounts.
-Rings are automatically synced to IBM Db2 and detected on the next backend restart.
-
-```bash
-python3 data-gen/inject_rings.py              # inject 3 rings (default)
-python3 data-gen/inject_rings.py --rings 5    # inject 5 rings
-python3 data-gen/inject_rings.py --rings 2 --min-size 3 --max-size 7
-```
-
-After injecting, restart the backend to pick up and detect the new rings.
-
----
-
-## Test Connections
-
-```bash
-python3 backend/test_watsonx.py   # verify IBM watsonx.ai + Granite model
-python3 backend/test_db2.py       # verify IBM Db2 connection + data
-```
+**Db2 status button** — the header includes a clickable "IBM Db2" badge that checks the live connection on demand. It shows connection state, row counts if connected, or a clear explanation of the SQLite fallback if the instance is unavailable.
 
 ---
 
 ## API Endpoints
 
-```
+```text
 GET  /graph            — full graph (nodes + edges + risk scores)
 GET  /alerts           — detected fraud alerts
 GET  /alerts/{id}      — single alert with subgraph
 POST /analyze          — AI fraud explanation via watsonx.ai
+POST /demo/start       — reset engine with new in-memory simulation
 GET  /stats            — dashboard stats
 WS   /ws/stream        — real-time transaction stream
 ```
