@@ -85,9 +85,6 @@ DB2_SSL=true
 WATSONX_API_KEY=your_ibm_cloud_api_key
 WATSONX_PROJECT_ID=your_watsonx_project_id
 WATSONX_URL=https://ca-tor.ml.cloud.ibm.com
-
-# CORS origins (default: http://localhost:3000)
-CORS_ORIGINS=http://localhost:3000,https://yourapp.vercel.app
 ```
 
 Create `frontend/fraudnet-ai/.env.local`:
@@ -131,7 +128,7 @@ fraudnet_transactions  (tx_id, from_account, to_account, amount, tx_timestamp, t
 - `POST /db2/load` — reload data from Db2/SQLite and broadcast a `demo_reset` to all WebSocket clients
 - `GET /db2/status` — returns connection state and row counts, shown in the UI via the **IBM Db2** header button
 
-The trial Db2 instance used during development has expired. The SQLite fallback handles everything automatically. To reconnect, add credentials to `backend/.env`.
+The trial Db2 instance used during development has expired. The SQLite fallback (`data-gen/transactions.db`, included in the repo) handles everything automatically with no configuration needed. To reconnect to a live Db2 instance, add credentials to `backend/.env`.
 
 During development, Db2 stored **5,000 transactions** and **500 accounts** on IBM Cloud (ca-tor region).
 
@@ -175,20 +172,13 @@ WS   /ws/stream        — real-time transaction stream
 
 ### Backend → Railway
 
-```toml
-# nixpacks.toml
-providers = ["python"]
+Configured via `nixpacks.toml` (Python 3.11 provider) and `railway.toml`.
 
-[phases.install]
-cmds = ["python3 -m pip install -r backend/requirements.txt"]
+- Start command: `python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+- Health check: `GET /stats` · Restart policy: `on_failure`
+- CORS: open to all origins (`allow_origins=["*"]`) — no Railway env var needed
 
-[start]
-cmd = "python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
-```
-
-Health check: `GET /stats` · Restart policy: `on_failure`
-
-Set environment variables in the Railway dashboard (same keys as `.env` above).
+Set IBM credentials in the Railway dashboard if connecting to a live Db2 or watsonx.ai instance.
 
 ### Frontend → Vercel
 
