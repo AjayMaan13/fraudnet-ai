@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { HTTP_BASE, WS_BASE } from "../lib/api";
 
 export interface GraphNode {
   id: string;
@@ -45,7 +46,7 @@ interface WebSocketState {
   isDemoMode: boolean;
 }
 
-const WS_URL = "ws://localhost:8000/ws/stream";
+const WS_URL = `${WS_BASE}/ws/stream`;
 
 const DEFAULT_STATS: Stats = {
   total_txns: 0,
@@ -175,7 +176,7 @@ export function useWebSocket() {
   useEffect(() => {
     const poll = setInterval(async () => {
       try {
-        const r = await fetch("http://localhost:8000/stats");
+        const r = await fetch(`${HTTP_BASE}/stats`);
         if (r.ok) {
           const data: Stats = await r.json();
           setState(s => ({ ...s, stats: data }));

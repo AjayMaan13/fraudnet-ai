@@ -9,6 +9,7 @@ import LaunchScreen from "./components/LaunchScreen";
 import StatsBar from "./components/StatsBar";
 import type { Alert } from "./components/useWebSocket";
 import { useWebSocket } from "./components/useWebSocket";
+import { HTTP_BASE } from "./lib/api";
 
 const GraphView = dynamic(() => import("./components/GraphView"), { ssr: false });
 
@@ -37,7 +38,7 @@ export default function Dashboard() {
     n_accounts: number; n_transactions: number;
     n_circular: number; n_structuring: number; n_burst: number;
   }) => {
-    const res = await fetch("http://localhost:8000/demo/start", {
+    const res = await fetch(`${HTTP_BASE}/demo/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cfg),
@@ -159,7 +160,7 @@ export default function Dashboard() {
               onClick={async () => {
                 setDb2Loading(true);
                 try {
-                  await fetch("http://localhost:8000/db2/load", { method: "POST" });
+                  await fetch(`${HTTP_BASE}/db2/load`, { method: "POST" });
                   setHasLaunched(true);
                   setSelectedAlert(null);
                 } finally {

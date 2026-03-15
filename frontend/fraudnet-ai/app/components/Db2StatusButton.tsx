@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { HTTP_BASE } from "../lib/api";
 
 type Status =
   | { state: "idle" }
@@ -34,7 +35,7 @@ export default function Db2StatusButton() {
     if (status.state === "idle" || status.state === "disconnected") {
       setStatus({ state: "loading" });
       try {
-        const res  = await fetch("http://localhost:8000/db2/status");
+        const res  = await fetch(`${HTTP_BASE}/db2/status`);
         const data = await res.json();
         if (data.connected) {
           setStatus({ state: "connected", accounts: data.accounts, transactions: data.transactions });
