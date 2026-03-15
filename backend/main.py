@@ -89,14 +89,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="FraudNet-AI", version="1.0.0", lifespan=lifespan)
 
-_CORS_ORIGINS = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:3000",
-).split(",")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_CORS_ORIGINS,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
