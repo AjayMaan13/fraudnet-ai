@@ -60,8 +60,8 @@ async def lifespan(app: FastAPI):
         engine.load_from_data(accounts, txns)
         print(f"  Source: {db_source.upper()}")
     except Exception as e:
-        print(f"  Db2 client error ({e}) — falling back to SQLite")
-        engine.load_from_db()
+        print(f"  Startup: no data source available ({e}) — starting empty")
+        # No DB on Railway — demo/load endpoints will populate the engine
 
     engine.calculate_risk_scores()
     print(f"  Graph ready: {engine.G.number_of_nodes()} nodes, "
