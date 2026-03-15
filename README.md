@@ -93,6 +93,10 @@ The backend includes a full IBM Db2 client (`backend/db2_client.py`) that connec
 
 This integration was built and tested during development using an IBM Cloud trial instance. **The trial instance has since expired**, so the app currently runs on the SQLite fallback — handled automatically at startup with no code changes needed. To reconnect to a live Db2 instance, add the credentials to `backend/.env` as shown above.
 
+During development, Db2 stored **5,000 transactions** and **500 accounts** on IBM Cloud (ca-tor region).
+
+**Db2 status button** — the header includes a clickable "IBM Db2" badge that checks the live connection on demand. It shows connection state, row counts if connected, or a clear explanation of the SQLite fallback if the instance is unavailable.
+
 ---
 
 ## API Endpoints
