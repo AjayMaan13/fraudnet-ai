@@ -222,4 +222,6 @@ fraudnet-ai/
 
 ## License
 
-MIT
+MIT License — Copyright (c) 2025 Ajaypartap Singh Maan
+
+See [LICENSE](LICENSE) for the full text.
