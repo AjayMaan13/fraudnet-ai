@@ -122,28 +122,36 @@ export default function StatsBar({ stats, isConnected, txCount }: Props) {
 
       {/* Right badges */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 24, flexShrink: 0 }}>
-        {/* watsonx.ai badge */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 5,
-          background: "rgba(99,102,241,0.08)",
-          border: "1px solid rgba(99,102,241,0.22)",
-          borderRadius: 6, padding: "4px 10px",
-        }}>
+        {/* watsonx.ai badge — broken */}
+        <div
+          title="watsonx.ai link broken — insufficient tokens on IBM Cloud trial"
+          style={{
+            display: "flex", alignItems: "center", gap: 5,
+            background: "rgba(234,179,8,0.07)",
+            border: "1px solid rgba(234,179,8,0.28)",
+            borderRadius: 6, padding: "4px 10px",
+          }}
+        >
           <svg width="12" height="12" viewBox="0 0 32 32" fill="none">
-            <circle cx="16" cy="16" r="14" fill="url(#ibm-grad)" />
+            <circle cx="16" cy="16" r="14" fill="url(#ibm-grad-broken)" />
             <defs>
-              <linearGradient id="ibm-grad" x1="0" y1="0" x2="32" y2="32">
-                <stop offset="0%" stopColor="#6366F1"/>
-                <stop offset="100%" stopColor="#818CF8"/>
+              <linearGradient id="ibm-grad-broken" x1="0" y1="0" x2="32" y2="32">
+                <stop offset="0%" stopColor="#92400E"/>
+                <stop offset="100%" stopColor="#B45309"/>
               </linearGradient>
             </defs>
             <text x="5" y="21" fontSize="13" fontWeight="800" fill="white" fontFamily="Arial">AI</text>
           </svg>
-          <span style={{ fontSize: 9, fontWeight: 700, color: "#818CF8", letterSpacing: "0.05em" }}>
-            watsonx.ai
-          </span>
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#EAB308", letterSpacing: "0.05em" }}>
+              watsonx.ai
+            </span>
+            <span style={{ fontSize: 7, color: "#92400E", letterSpacing: "0.03em" }}>
+              link broken · insufficient tokens
+            </span>
+          </div>
         </div>
-        {/* Db2 connect button */}
+        {/* Db2 removed badge */}
         <Db2StatusButton />
 
         {/* Connection pill */}

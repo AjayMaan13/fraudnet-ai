@@ -83,12 +83,17 @@ export default function AIExplanation({ alert }: Props) {
             Fraud Intelligence
           </span>
         </div>
-        <div style={{
-          fontSize: 9, color: "#818CF8",
-          background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)",
-          borderRadius: 5, padding: "3px 8px", fontWeight: 600, letterSpacing: "0.05em",
-        }}>
-          IBM watsonx.ai
+        <div
+          title="watsonx.ai link broken — insufficient tokens on IBM Cloud trial. Using cached responses."
+          style={{
+            display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.3,
+            fontSize: 9,
+            background: "rgba(234,179,8,0.07)", border: "1px solid rgba(234,179,8,0.28)",
+            borderRadius: 5, padding: "3px 8px", fontWeight: 600, letterSpacing: "0.05em",
+          }}
+        >
+          <span style={{ color: "#EAB308" }}>IBM watsonx.ai</span>
+          <span style={{ fontSize: 7, color: "#92400E", fontWeight: 500 }}>link broken · insufficient tokens</span>
         </div>
       </div>
 
