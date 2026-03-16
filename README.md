@@ -6,6 +6,10 @@ Financial fraud hides in networks, not single transactions. FraudNet·AI makes t
 
 Built in 36 hours at **GenAI Genesis 2026** — Canada's largest AI hackathon.
 
+**[Live Demo →](https://fraudnet-ai.vercel.app)** · **[DevPost →](https://devpost.com/AjayMaan13)**
+
+> **Note on IBM integrations:** Both IBM watsonx.ai and IBM Db2 are fully implemented in the codebase (`backend/watsonx_client.py`, `backend/db2_client.py`). They are currently disabled because the IBM Cloud trial tokens were exhausted and the Db2 trial instance expired. The app runs entirely on pre-cached Granite 3 responses and SQLite — no functionality is lost for the demo.
+
 ---
 
 ## What It Does
