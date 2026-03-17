@@ -295,7 +295,7 @@ export default function Dashboard() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 18px", gap: 12,
       }}>
-        <span style={{ fontSize: 9, color: "var(--muted)", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 9, color: "var(--text2)", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>
           Real-time financial fraud detection powered by graph analysis &amp; IBM Granite AI
         </span>
 
