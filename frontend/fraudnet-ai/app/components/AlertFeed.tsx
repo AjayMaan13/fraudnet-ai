@@ -47,10 +47,10 @@ export default function AlertFeed({ alerts, selectedId, onSelect }: Props) {
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Header */}
       <div style={{
-        padding: "11px 16px 8px",
+        padding: "13px 16px 10px",
         borderBottom: "1px solid var(--border)",
         flexShrink: 0,
-        background: "linear-gradient(90deg, rgba(239,68,68,0.04) 0%, transparent 100%)",
+        background: "transparent",
       }}>
         {/* Title row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -82,7 +82,7 @@ export default function AlertFeed({ alerts, selectedId, onSelect }: Props) {
             )}
           </div>
           {alerts.length > 0 && (
-            <span style={{ fontSize: 9, color: "var(--muted)", letterSpacing: "0.05em" }}>
+            <span style={{ fontSize: 9, color: "var(--text2)", letterSpacing: "0.05em" }}>
               Click to analyze ›
             </span>
           )}
@@ -99,13 +99,13 @@ export default function AlertFeed({ alerts, selectedId, onSelect }: Props) {
                 onClick={() => setFilter(f.key)}
                 style={{
                   display: "flex", alignItems: "center", gap: 4,
-                  padding: "3px 8px", borderRadius: 5, fontSize: 9, fontWeight: 600,
+                  padding: "4px 10px", borderRadius: 20, fontSize: 9, fontWeight: 700,
                   cursor: "pointer",
-                  background: active ? `${f.color}18` : "rgba(255,255,255,0.03)",
-                  border: `1px solid ${active ? f.color + "50" : "rgba(255,255,255,0.07)"}`,
+                  background: active ? `${f.color}18` : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${active ? f.color + "55" : "rgba(255,255,255,0.08)"}`,
                   color: active ? f.color : "var(--muted)",
                   transition: "all 0.15s",
-                  letterSpacing: "0.03em",
+                  letterSpacing: "0.04em",
                 }}
               >
                 <span style={{ fontSize: 9 }}>{f.icon}</span>
@@ -154,13 +154,15 @@ export default function AlertFeed({ alerts, selectedId, onSelect }: Props) {
               className="alert-new interactive"
               onClick={() => onSelect(alert)}
               style={{
-                background: selected ? meta.bg : "rgba(255,255,255,0.015)",
-                border: `1px solid ${selected ? meta.color + "55" : "var(--border)"}`,
-                borderRadius: 9,
-                padding: "10px 12px",
+                background: selected ? meta.bg : "rgba(255,255,255,0.025)",
+                border: `1px solid ${selected ? meta.color + "60" : "rgba(255,255,255,0.07)"}`,
+                borderRadius: 12,
+                padding: "11px 13px",
                 position: "relative",
                 overflow: "hidden",
                 flexShrink: 0,
+                boxShadow: selected ? `0 0 12px ${meta.color}20` : "none",
+                transition: "box-shadow 0.2s, border-color 0.2s, background 0.2s",
               }}
             >
               {/* Left accent bar */}
@@ -191,14 +193,14 @@ export default function AlertFeed({ alerts, selectedId, onSelect }: Props) {
                     {meta.label}
                   </span>
                 </div>
-                <span style={{ fontSize: 9, color: "var(--muted)", letterSpacing: "0.03em" }}>
+                <span style={{ fontSize: 9, color: "var(--text2)", letterSpacing: "0.03em" }}>
                   {timeAgo(alert.timestamp)}
                 </span>
               </div>
 
               {/* Accounts */}
               <div style={{
-                fontSize: 10, color: "var(--muted)",
+                fontSize: 10, color: "var(--text2)",
                 fontFamily: "'SF Mono', 'Fira Code', monospace",
                 marginBottom: 8, paddingLeft: 2,
                 whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",

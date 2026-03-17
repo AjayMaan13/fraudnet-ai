@@ -64,11 +64,11 @@ export default function AIExplanation({ alert }: Props) {
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Header */}
       <div style={{
-        padding: "10px 14px",
+        padding: "13px 16px",
         borderBottom: "1px solid var(--border)",
         flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        background: "linear-gradient(90deg, rgba(99,102,241,0.06) 0%, transparent 100%)",
+        background: "transparent",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
@@ -141,9 +141,9 @@ export default function AIExplanation({ alert }: Props) {
                 flex: 1, minWidth: 80,
                 background: `${SEV_COLOR[result.severity] || "#EF4444"}12`,
                 border: `1px solid ${SEV_COLOR[result.severity] || "#EF4444"}35`,
-                borderRadius: 7, padding: "7px 10px",
+                borderRadius: 10, padding: "8px 12px",
               }}>
-                <div style={{ fontSize: 8, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Severity</div>
+                <div style={{ fontSize: 8, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Severity</div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: SEV_COLOR[result.severity] || "#EF4444" }}>
                   {result.severity}
                 </div>
@@ -153,9 +153,9 @@ export default function AIExplanation({ alert }: Props) {
                 flex: 1, minWidth: 80,
                 background: `${SEV_COLOR[result.confidence] || "#EF4444"}12`,
                 border: `1px solid ${SEV_COLOR[result.confidence] || "#EF4444"}35`,
-                borderRadius: 7, padding: "7px 10px",
+                borderRadius: 10, padding: "8px 12px",
               }}>
-                <div style={{ fontSize: 8, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Confidence</div>
+                <div style={{ fontSize: 8, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Confidence</div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: SEV_COLOR[result.confidence] || "#EF4444" }}>
                   {result.confidence}
                 </div>
@@ -165,9 +165,9 @@ export default function AIExplanation({ alert }: Props) {
                 flex: 1, minWidth: 80,
                 background: `${PRIORITY_COLOR[result.investigation_priority] || "#3B82F6"}12`,
                 border: `1px solid ${PRIORITY_COLOR[result.investigation_priority] || "#3B82F6"}35`,
-                borderRadius: 7, padding: "7px 10px",
+                borderRadius: 10, padding: "8px 12px",
               }}>
-                <div style={{ fontSize: 8, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Priority</div>
+                <div style={{ fontSize: 8, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Priority</div>
                 <div style={{ fontSize: 11, fontWeight: 800, color: PRIORITY_COLOR[result.investigation_priority] || "#3B82F6" }}>
                   {result.investigation_priority}
                 </div>
