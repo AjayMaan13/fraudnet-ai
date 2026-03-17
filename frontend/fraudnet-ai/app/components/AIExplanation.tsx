@@ -64,11 +64,11 @@ export default function AIExplanation({ alert }: Props) {
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Header */}
       <div style={{
-        padding: "10px 14px",
+        padding: "13px 16px",
         borderBottom: "1px solid var(--border)",
         flexShrink: 0,
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        background: "linear-gradient(90deg, rgba(99,102,241,0.06) 0%, transparent 100%)",
+        background: "transparent",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{
@@ -104,7 +104,7 @@ export default function AIExplanation({ alert }: Props) {
         {!alert && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 10 }}>
             <div style={{ width: 44, height: 44, border: "1px solid var(--border2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, opacity: 0.25 }}>✦</div>
-            <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", lineHeight: 1.7, opacity: 0.75 }}>
+            <div style={{ fontSize: 11, color: "var(--text2)", textAlign: "center", lineHeight: 1.7 }}>
               Select an alert to generate<br/>a full fraud intelligence report
             </div>
           </div>
@@ -118,7 +118,7 @@ export default function AIExplanation({ alert }: Props) {
             ))}
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, fontSize: 10, color: "var(--muted)" }}>
               <div style={{ width: 13, height: 13, border: "2px solid transparent", borderTopColor: "#6366F1", borderRadius: "50%", animation: "spin-slow 0.8s linear infinite", flexShrink: 0 }} />
-              Generating fraud intelligence report…
+              <span style={{ color: "var(--text2)" }}>Generating fraud intelligence report…</span>
             </div>
           </div>
         )}
@@ -141,9 +141,9 @@ export default function AIExplanation({ alert }: Props) {
                 flex: 1, minWidth: 80,
                 background: `${SEV_COLOR[result.severity] || "#EF4444"}12`,
                 border: `1px solid ${SEV_COLOR[result.severity] || "#EF4444"}35`,
-                borderRadius: 7, padding: "7px 10px",
+                borderRadius: 10, padding: "8px 12px",
               }}>
-                <div style={{ fontSize: 8, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Severity</div>
+                <div style={{ fontSize: 8, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Severity</div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: SEV_COLOR[result.severity] || "#EF4444" }}>
                   {result.severity}
                 </div>
@@ -153,9 +153,9 @@ export default function AIExplanation({ alert }: Props) {
                 flex: 1, minWidth: 80,
                 background: `${SEV_COLOR[result.confidence] || "#EF4444"}12`,
                 border: `1px solid ${SEV_COLOR[result.confidence] || "#EF4444"}35`,
-                borderRadius: 7, padding: "7px 10px",
+                borderRadius: 10, padding: "8px 12px",
               }}>
-                <div style={{ fontSize: 8, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Confidence</div>
+                <div style={{ fontSize: 8, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Confidence</div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: SEV_COLOR[result.confidence] || "#EF4444" }}>
                   {result.confidence}
                 </div>
@@ -165,9 +165,9 @@ export default function AIExplanation({ alert }: Props) {
                 flex: 1, minWidth: 80,
                 background: `${PRIORITY_COLOR[result.investigation_priority] || "#3B82F6"}12`,
                 border: `1px solid ${PRIORITY_COLOR[result.investigation_priority] || "#3B82F6"}35`,
-                borderRadius: 7, padding: "7px 10px",
+                borderRadius: 10, padding: "8px 12px",
               }}>
-                <div style={{ fontSize: 8, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Priority</div>
+                <div style={{ fontSize: 8, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>Priority</div>
                 <div style={{ fontSize: 11, fontWeight: 800, color: PRIORITY_COLOR[result.investigation_priority] || "#3B82F6" }}>
                   {result.investigation_priority}
                 </div>
@@ -190,7 +190,7 @@ export default function AIExplanation({ alert }: Props) {
                 borderRadius: 7, padding: "8px 11px",
               }}>
                 <div style={{ fontSize: 8, color: "#818CF8", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 5 }}>Pattern Analysis</div>
-                <div style={{ fontSize: 11, color: "var(--text2)", lineHeight: 1.65 }}>{result.pattern_summary}</div>
+                <div style={{ fontSize: 11, color: "#E0E8FF", lineHeight: 1.65 }}>{result.pattern_summary}</div>
               </div>
             )}
 
@@ -209,7 +209,7 @@ export default function AIExplanation({ alert }: Props) {
             {/* Regulatory flags */}
             {result.regulatory_flags?.length > 0 && (
               <div>
-                <div style={{ fontSize: 8, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6 }}>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6 }}>
                   Regulatory Flags
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -262,7 +262,7 @@ export default function AIExplanation({ alert }: Props) {
 function Section({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 8, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6 }}>
+      <div style={{ fontSize: 8, fontWeight: 700, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6 }}>
         {title}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>{children}</div>
@@ -283,7 +283,7 @@ function BulletItem({ text, color, index }: { text: string; color: string; index
       ) : (
         <div style={{ width: 4, height: 4, borderRadius: "50%", background: color, flexShrink: 0, marginTop: 5, boxShadow: `0 0 4px ${color}60` }} />
       )}
-      <span style={{ fontSize: 11, color: "var(--text2)", lineHeight: 1.6 }}>{text}</span>
+      <span style={{ fontSize: 11, color: "#E0E8FF", lineHeight: 1.6 }}>{text}</span>
     </div>
   );
 }

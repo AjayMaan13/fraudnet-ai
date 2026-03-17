@@ -1,25 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --bg:           #06060F;
-  --bg2:          #0A0A18;
-  --panel:        #0D0D1F;
-  --panel2:       #111128;
-  --panel3:       #14142E;
-  --border:       #1A1A35;
-  --border2:      #222244;
-  --text:         #E8EEFF;
-  --text2:        #A0AABF;
-  --muted:        #4A5270;
-  --clean:        #3B82F6;
-  --watch:        #EAB308;
-  --suspicious:   #F97316;
-  --fraud:        #EF4444;
-  --accent:       #6366F1;
-  --accent2:      #818CF8;
-  --green:        #22C55E;
-  --radius:       10px;
-  --radius-sm:    6px;
+  --bg:           #111127;
+  --bg2:          #16162E;
+  --card:         #1E1E40;
+  --card-border:  rgba(255,255,255,0.13);
+  --card-shadow:  0 2px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
+  --panel:        #1E1E40;
+  --panel2:       #252550;
+  --panel3:       #2D2D5E;
+  --border:       #38386A;
+  --border2:      #48489A;
+  --text:         #FFFFFF;
+  --text2:        #C8D0F0;
+  --muted:        #9098C8;
+  --clean:        #60A5FA;
+  --watch:        #FBBF24;
+  --suspicious:   #FB923C;
+  --fraud:        #F87171;
+  --accent:       #818CF8;
+  --accent2:      #A5B4FC;
+  --green:        #34D399;
+  --radius:       16px;
+  --radius-sm:    8px;
+  --radius-lg:    20px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -101,8 +105,15 @@ html, body {
 }
 
 .interactive {
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
   cursor: pointer;
 }
-.interactive:hover { transform: translateY(-1px); }
+.interactive:hover  { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
 .interactive:active { transform: translateY(0); }
+
+/* Resize handle — reveal on parent hover */
+.resize-handle-v:hover > div,
+.resize-handle-h:hover > div {
+  opacity: 0.85 !important;
+  background: var(--accent2) !important;
+}

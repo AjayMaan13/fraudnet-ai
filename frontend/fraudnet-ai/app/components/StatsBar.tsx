@@ -1,7 +1,6 @@
 "use client";
 
 import type { Stats } from "./useWebSocket";
-import Db2StatusButton from "./Db2StatusButton";
 
 interface Props {
   stats: Stats;
@@ -25,33 +24,34 @@ function fmtUptime(s: number) {
 export default function StatsBar({ stats, isConnected, txCount }: Props) {
   return (
     <header style={{
-      background: "linear-gradient(180deg, #0A0A1C 0%, #0D0D1F 100%)",
-      borderBottom: "1px solid var(--border)",
+      background: "var(--bg)",
       display: "flex",
       alignItems: "center",
-      padding: "0 24px",
-      height: 60,
+      padding: "10px 14px",
+      gap: 8,
       flexShrink: 0,
-      position: "relative",
       zIndex: 10,
     }}>
-      {/* Subtle top glow line */}
+      {/* Logo tile */}
       <div style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: 1,
-        background: "linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.4) 30%, rgba(239,68,68,0.3) 70%, transparent 100%)",
-      }} />
-
-      {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: 11, marginRight: 36, flexShrink: 0 }}>
+        display: "flex", alignItems: "center", gap: 10,
+        background: "var(--card)",
+        border: "1px solid var(--card-border)",
+        boxShadow: "var(--card-shadow)",
+        borderRadius: "var(--radius)",
+        padding: "8px 16px",
+        flexShrink: 0,
+        height: 54,
+      }}>
         <div style={{
-          width: 34, height: 34,
+          width: 28, height: 28,
           background: "linear-gradient(135deg, #6366F1 0%, #EF4444 100%)",
-          borderRadius: 9,
+          borderRadius: 8,
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 0 16px rgba(99,102,241,0.35), 0 2px 8px rgba(0,0,0,0.4)",
+          boxShadow: "0 0 12px rgba(99,102,241,0.45)",
           flexShrink: 0,
         }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" opacity="0.95"/>
             <path d="M2 17l10 5 10-5" stroke="white" strokeWidth="2" fill="none" opacity="0.65"/>
             <path d="M2 12l10 5 10-5" stroke="white" strokeWidth="2" fill="none" opacity="0.82"/>
@@ -59,127 +59,97 @@ export default function StatsBar({ stats, isConnected, txCount }: Props) {
         </div>
         <div>
           <div style={{
-            fontWeight: 800, fontSize: 15, letterSpacing: "-0.01em", lineHeight: 1.15,
-            background: "linear-gradient(135deg, #E8EEFF 30%, #A0AABF 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
+            fontWeight: 800, fontSize: 14, letterSpacing: "-0.01em", lineHeight: 1.2,
           }}>
-            FraudNet<span style={{ WebkitTextFillColor: "#EF4444" }}>·AI</span>
+            <span style={{ color: "#FFFFFF" }}>FraudNet</span>
+            <span style={{ color: "#F87171" }}>·AI</span>
           </div>
-          <div style={{
-            fontSize: 9, color: "var(--muted)",
-            letterSpacing: "0.12em", textTransform: "uppercase",
-            fontWeight: 500,
-          }}>
+          <div style={{ fontSize: 8, color: "var(--muted)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>
             Real-Time Detection
           </div>
         </div>
       </div>
 
-      {/* Divider */}
-      <div style={{
-        width: 1, height: 28,
-        background: "linear-gradient(180deg, transparent, var(--border2), transparent)",
-        marginRight: 32, flexShrink: 0,
-      }} />
-
-      {/* Stats */}
-      <div style={{ display: "flex", gap: 0, flex: 1, alignItems: "stretch" }}>
-        <StatItem
-          label="Transactions"
-          value={fmt(stats.total_txns || txCount)}
-          icon="⟳"
-        />
-        <Divider />
-        <StatItem
-          label="Active Accounts"
-          value={fmt(stats.active_accounts)}
-          icon="◈"
-        />
-        <Divider />
-        <StatItem
-          label="Fraud Rings"
-          value={String(stats.fraud_rings)}
-          highlight={stats.fraud_rings > 0}
-          color="var(--fraud)"
-          icon="⌖"
-        />
-        <Divider />
-        <StatItem
-          label="Flagged Amount"
-          value={fmtMoney(stats.flagged_amount)}
-          highlight={stats.flagged_amount > 0}
-          color="var(--suspicious)"
-          icon="⚑"
-        />
-        <Divider />
-        <StatItem
-          label="Uptime"
-          value={fmtUptime(stats.uptime)}
-          icon="◷"
-        />
+      {/* Stat tiles — equal width via flex */}
+      <div style={{ display: "flex", gap: 8, flex: 1 }}>
+        {[
+          { label: "Transactions",    value: fmt(stats.total_txns || txCount), icon: "⟳" },
+          { label: "Active Accounts", value: fmt(stats.active_accounts),       icon: "◈" },
+          { label: "Fraud Rings",     value: String(stats.fraud_rings),        icon: "⌖", highlight: stats.fraud_rings > 0,        color: "#F87171" },
+          { label: "Flagged Amount",  value: fmtMoney(stats.flagged_amount),   icon: "⚑", highlight: stats.flagged_amount > 0,     color: "#FB923C" },
+          { label: "Uptime",          value: fmtUptime(stats.uptime),          icon: "◷" },
+        ].map(({ label, value, icon, highlight, color }) => (
+          <StatTile key={label} label={label} value={value} icon={icon} highlight={highlight} color={color} />
+        ))}
       </div>
 
       {/* Right badges */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 24, flexShrink: 0 }}>
-        {/* watsonx.ai badge — broken */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        {/* watsonx.ai badge */}
         <div
-          title="watsonx.ai link broken — insufficient tokens on IBM Cloud trial"
+          title="watsonx.ai — insufficient tokens on IBM Cloud trial"
           style={{
-            display: "flex", alignItems: "center", gap: 5,
-            background: "rgba(234,179,8,0.07)",
-            border: "1px solid rgba(234,179,8,0.28)",
-            borderRadius: 6, padding: "4px 10px",
+            display: "flex", alignItems: "center", gap: 6,
+            background: "var(--card)",
+            border: "1px solid rgba(251,191,36,0.35)",
+            borderRadius: "var(--radius-sm)", padding: "6px 12px",
+            boxShadow: "var(--card-shadow)",
+            height: 54,
           }}
         >
-          <svg width="12" height="12" viewBox="0 0 32 32" fill="none">
-            <circle cx="16" cy="16" r="14" fill="url(#ibm-grad-broken)" />
-            <defs>
-              <linearGradient id="ibm-grad-broken" x1="0" y1="0" x2="32" y2="32">
-                <stop offset="0%" stopColor="#92400E"/>
-                <stop offset="100%" stopColor="#B45309"/>
-              </linearGradient>
-            </defs>
+          <svg width="11" height="11" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="14" fill="#92400E" />
             <text x="5" y="21" fontSize="13" fontWeight="800" fill="white" fontFamily="Arial">AI</text>
           </svg>
-          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: "#EAB308", letterSpacing: "0.05em" }}>
-              watsonx.ai
-            </span>
-            <span style={{ fontSize: 7, color: "#92400E", letterSpacing: "0.03em" }}>
-              link broken · insufficient tokens
-            </span>
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.3 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#FBBF24", letterSpacing: "0.05em" }}>watsonx.ai</span>
+            <span style={{ fontSize: 7, color: "#D97706", letterSpacing: "0.03em", fontWeight: 500 }}>insufficient tokens</span>
           </div>
         </div>
-        {/* Db2 removed badge */}
-        <Db2StatusButton />
 
-        {/* Connection pill */}
+        {/* Db2 badge */}
+        <div
+          title="IBM Db2 connection removed — app runs on SQLite fallback"
+          style={{
+            display: "flex", alignItems: "center", gap: 6,
+            background: "var(--card)",
+            border: "1px solid rgba(248,113,113,0.35)",
+            borderRadius: "var(--radius-sm)", padding: "6px 12px",
+            boxShadow: "var(--card-shadow)",
+            height: 54,
+          }}
+        >
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F87171", boxShadow: "0 0 5px #F87171", flexShrink: 0 }} />
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.3 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#FCA5A5", letterSpacing: "0.05em" }}>IBM Db2</span>
+            <span style={{ fontSize: 7, color: "#F87171", letterSpacing: "0.03em", fontWeight: 500 }}>connection removed</span>
+          </div>
+        </div>
+
+        {/* Live / Reconnecting */}
         <div style={{
-          display: "flex", alignItems: "center", gap: 7,
-          background: isConnected ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)",
-          border: `1px solid ${isConnected ? "rgba(34,197,94,0.22)" : "rgba(239,68,68,0.22)"}`,
-          borderRadius: 20, padding: "5px 13px",
+          display: "flex", alignItems: "center", gap: 8,
+          background: "var(--card)",
+          border: `1px solid ${isConnected ? "rgba(52,211,153,0.4)" : "rgba(248,113,113,0.4)"}`,
+          borderRadius: "var(--radius-sm)", padding: "6px 16px",
+          boxShadow: "var(--card-shadow)",
+          height: 54,
         }}>
-          <div style={{ position: "relative", width: 7, height: 7 }}>
+          <div style={{ position: "relative", width: 8, height: 8 }}>
             {isConnected && (
               <div style={{
                 position: "absolute", inset: 0, borderRadius: "50%",
-                background: "#22C55E", opacity: 0.4,
+                background: "#34D399", opacity: 0.4,
                 animation: "ping 2s cubic-bezier(0,0,0.2,1) infinite",
               }} />
             )}
             <div style={{
               position: "absolute", inset: 0, borderRadius: "50%",
-              background: isConnected ? "#22C55E" : "#EF4444",
-              boxShadow: `0 0 6px ${isConnected ? "#22C55E" : "#EF4444"}`,
+              background: isConnected ? "#34D399" : "#F87171",
+              boxShadow: `0 0 8px ${isConnected ? "#34D399" : "#F87171"}`,
             }} />
           </div>
-          <span style={{
-            fontSize: 11, fontWeight: 600,
-            color: isConnected ? "#22C55E" : "#EF4444",
-            letterSpacing: "0.03em",
-          }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: isConnected ? "#34D399" : "#F87171", letterSpacing: "0.02em" }}>
             {isConnected ? "Live" : "Reconnecting"}
           </span>
         </div>
@@ -188,41 +158,39 @@ export default function StatsBar({ stats, isConnected, txCount }: Props) {
   );
 }
 
-function Divider() {
-  return (
-    <div style={{
-      width: 1, margin: "0 24px",
-      background: "linear-gradient(180deg, transparent, var(--border), transparent)",
-      alignSelf: "stretch",
-      flexShrink: 0,
-    }} />
-  );
-}
-
-function StatItem({
-  label, value, highlight, color, icon,
-}: {
+function StatTile({ label, value, highlight, color, icon }: {
   label: string; value: string; highlight?: boolean; color?: string; icon?: string;
 }) {
+  const c = highlight ? (color || "#F87171") : undefined;
   return (
-    <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
+    <div style={{
+      flex: "1 1 0", minWidth: 0,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      gap: 4, padding: "8px 6px",
+      height: 54,
+      background: "var(--card)",
+      border: `1px solid ${c ? c + "45" : "var(--card-border)"}`,
+      borderRadius: "var(--radius)",
+      boxShadow: c ? `0 2px 16px rgba(0,0,0,0.4), 0 0 18px ${c}30` : "var(--card-shadow)",
+      transition: "border-color 0.4s, box-shadow 0.4s",
+    }}>
       <div style={{
-        fontSize: 9, color: "var(--muted)",
-        textTransform: "uppercase", letterSpacing: "0.1em",
-        marginBottom: 3, fontWeight: 500,
-        display: "flex", alignItems: "center", gap: 4,
+        fontSize: 9, color: "var(--muted)", textTransform: "uppercase",
+        letterSpacing: "0.09em", fontWeight: 700,
+        display: "flex", alignItems: "center", gap: 3,
+        whiteSpace: "nowrap",
       }}>
-        {icon && <span style={{ fontSize: 9, opacity: 0.6 }}>{icon}</span>}
+        {icon && <span style={{ opacity: 0.7 }}>{icon}</span>}
         {label}
       </div>
       <div style={{
-        fontSize: 18, fontWeight: 700,
-        color: highlight ? (color || "var(--fraud)") : "var(--text)",
+        fontSize: 20, fontWeight: 800,
+        color: c ?? "#FFFFFF",
         fontVariantNumeric: "tabular-nums",
         letterSpacing: "-0.02em",
-        textShadow: highlight ? `0 0 16px ${color || "var(--fraud)"}50` : "none",
-        transition: "color 0.4s, text-shadow 0.4s",
         lineHeight: 1,
+        textShadow: c ? `0 0 16px ${c}60` : "none",
+        transition: "color 0.4s, text-shadow 0.4s",
       }}>
         {value}
       </div>

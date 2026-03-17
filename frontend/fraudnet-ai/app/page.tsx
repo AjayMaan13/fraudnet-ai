@@ -20,19 +20,19 @@ export default function Dashboard() {
   const { nodes, edges, alerts, stats, isConnected, txCount } = useWebSocket();
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [splitPct, setSplitPct]           = useState(56);
-  const [panelWidth, setPanelWidth]       = useState(340);   // sidebar width px
-  const [hasLaunched, setHasLaunched]     = useState(true);   // always show dashboard
+  const [panelWidth, setPanelWidth]       = useState(340);
+  const [hasLaunched, setHasLaunched]     = useState(true);
   const [showReconfig, setShowReconfig]   = useState(false);
   const [db2Loading, setDb2Loading]       = useState(false);
 
-  // Auto-load Db2/SQLite data on first mount
   useEffect(() => {
     fetch(`${HTTP_BASE}/db2/load`, { method: "POST" }).catch(() => {});
   }, []);
-  const sidebarRef    = useRef<HTMLDivElement>(null);
-  const containerRef  = useRef<HTMLDivElement>(null);
-  const dragging      = useRef(false);
-  const hDragging     = useRef(false);           // horizontal panel resize
+
+  const sidebarRef   = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragging     = useRef(false);
+  const hDragging    = useRef(false);
 
   const MIN_PANEL = 260;
   const MAX_PANEL = 560;
@@ -55,7 +55,6 @@ export default function Dashboard() {
     setHasLaunched(true);
     setSelectedAlert(null);
     setShowReconfig(false);
-    // demo_reset WS message handles state clear + reconnect
   }, []);
 
   const onDragStart = useCallback((e: React.MouseEvent) => {
@@ -90,7 +89,7 @@ export default function Dashboard() {
     const onMove = (ev: MouseEvent) => {
       if (!hDragging.current || !containerRef.current) return;
       const rect  = containerRef.current.getBoundingClientRect();
-      const width = rect.right - ev.clientX;          // distance from right edge
+      const width = rect.right - ev.clientX;
       setPanelWidth(Math.min(MAX_PANEL, Math.max(MIN_PANEL, width)));
     };
     const onUp = () => {
@@ -113,18 +112,26 @@ export default function Dashboard() {
     }}>
       <StatsBar stats={stats} isConnected={isConnected} txCount={txCount} />
 
+      {/* ── Tiled main area ─────────────────────────────────────── */}
       <div
         ref={containerRef}
         style={{
           flex: 1, display: "flex", flexDirection: "row",
+          padding: "0 12px 12px", gap: 10,
           overflow: "hidden", minHeight: 0,
         }}
       >
-        {/* 3D Graph */}
-        <div style={{ flex: 1, overflow: "hidden", position: "relative", minHeight: 0 }}>
+        {/* ── Graph tile ──────────────────────────────────────────── */}
+        <div style={{
+          flex: 1, overflow: "hidden", position: "relative", minHeight: 0,
+          borderRadius: "var(--radius-lg)",
+          background: "var(--card)",
+          border: "1px solid var(--card-border)",
+          boxShadow: "var(--card-shadow)",
+        }}>
           <GraphView nodes={nodes} edges={edges} highlightIds={highlightIds} />
 
-          {/* Top center buttons */}
+          {/* Top center action buttons */}
           <div style={{
             position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)",
             zIndex: 10, display: "flex", gap: 8, alignItems: "center",
@@ -133,22 +140,23 @@ export default function Dashboard() {
               onClick={() => setShowReconfig(true)}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                padding: "6px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700,
+                padding: "7px 16px", borderRadius: 10, fontSize: 11, fontWeight: 700,
                 cursor: "pointer",
-                background: "rgba(99,102,241,0.12)",
-                border: "1px solid rgba(99,102,241,0.3)",
+                background: "rgba(99,102,241,0.14)",
+                border: "1px solid rgba(99,102,241,0.32)",
                 color: "#818CF8",
-                backdropFilter: "blur(10px)",
+                backdropFilter: "blur(16px)",
                 letterSpacing: "0.03em",
                 transition: "all 0.15s",
+                boxShadow: "0 2px 8px rgba(99,102,241,0.15)",
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.background  = "rgba(99,102,241,0.22)";
-                e.currentTarget.style.borderColor = "rgba(99,102,241,0.5)";
+                e.currentTarget.style.background  = "rgba(99,102,241,0.24)";
+                e.currentTarget.style.borderColor = "rgba(99,102,241,0.55)";
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background  = "rgba(99,102,241,0.12)";
-                e.currentTarget.style.borderColor = "rgba(99,102,241,0.3)";
+                e.currentTarget.style.background  = "rgba(99,102,241,0.14)";
+                e.currentTarget.style.borderColor = "rgba(99,102,241,0.32)";
               }}
             >
               <span style={{ fontSize: 12 }}>⚙</span>
@@ -169,25 +177,26 @@ export default function Dashboard() {
               }}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                padding: "6px 14px", borderRadius: 8, fontSize: 11, fontWeight: 700,
+                padding: "7px 16px", borderRadius: 10, fontSize: 11, fontWeight: 700,
                 cursor: db2Loading ? "not-allowed" : "pointer",
-                background: "rgba(59,130,246,0.10)",
-                border: "1px solid rgba(59,130,246,0.28)",
+                background: "rgba(59,130,246,0.12)",
+                border: "1px solid rgba(59,130,246,0.30)",
                 color: "#60A5FA",
-                backdropFilter: "blur(10px)",
+                backdropFilter: "blur(16px)",
                 letterSpacing: "0.03em",
                 transition: "all 0.15s",
                 opacity: db2Loading ? 0.6 : 1,
+                boxShadow: "0 2px 8px rgba(59,130,246,0.12)",
               }}
               onMouseEnter={e => {
                 if (!db2Loading) {
-                  e.currentTarget.style.background  = "rgba(59,130,246,0.20)";
-                  e.currentTarget.style.borderColor = "rgba(59,130,246,0.5)";
+                  e.currentTarget.style.background  = "rgba(59,130,246,0.22)";
+                  e.currentTarget.style.borderColor = "rgba(59,130,246,0.52)";
                 }
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background  = "rgba(59,130,246,0.10)";
-                e.currentTarget.style.borderColor = "rgba(59,130,246,0.28)";
+                e.currentTarget.style.background  = "rgba(59,130,246,0.12)";
+                e.currentTarget.style.borderColor = "rgba(59,130,246,0.30)";
               }}
             >
               {db2Loading
@@ -198,49 +207,40 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Horizontal drag handle ─────────────────────────── */}
+        {/* ── Horizontal resize handle ─────────────────────────── */}
         <div
           onMouseDown={onPanelDragStart}
           style={{
-            width: 5, flexShrink: 0,
-            cursor: "col-resize",
-            background: "var(--border)",
-            position: "relative", zIndex: 2,
-            transition: "background 0.15s",
+            width: 16, flexShrink: 0, cursor: "col-resize",
             display: "flex", alignItems: "center", justifyContent: "center",
+            position: "relative", zIndex: 2,
+            marginLeft: -3, marginRight: -3,
           }}
-          onMouseEnter={e => (e.currentTarget.style.background = "#6366F155")}
-          onMouseLeave={e => (e.currentTarget.style.background = "var(--border)")}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {[0, 1, 2].map(i => (
-              <div key={i} style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", opacity: 0.5 }} />
-            ))}
-          </div>
+          <div style={{
+            width: 4, height: 36, borderRadius: 3,
+            background: "var(--border2)", opacity: 0.45,
+            transition: "opacity 0.15s, background 0.15s",
+          }} />
         </div>
 
-        {/* Right sidebar */}
+        {/* ── Right sidebar (tiles) ──────────────────────────────── */}
         <div
           ref={sidebarRef}
           style={{
             width: panelWidth, flexShrink: 0,
             display: "flex", flexDirection: "column",
-            overflow: "hidden",
-            background: "var(--panel)",
-            minHeight: 0, position: "relative",
+            gap: 10, overflow: "hidden", minHeight: 0,
           }}
         >
-          {/* Top accent */}
+          {/* Alert feed tile */}
           <div style={{
-            position: "absolute", top: 0, left: 0, right: 0, height: 1, zIndex: 1,
-            background: "linear-gradient(90deg, rgba(239,68,68,0.4) 0%, rgba(99,102,241,0.4) 100%)",
-          }} />
-
-          {/* Alert feed */}
-          <div style={{
-            height: `${splitPct}%`, minHeight: 0,
-            flexShrink: 0, overflow: "hidden",
-            display: "flex", flexDirection: "column",
+            height: `${splitPct}%`, minHeight: 0, flexShrink: 0,
+            borderRadius: "var(--radius-lg)",
+            background: "var(--card)",
+            border: "1px solid var(--card-border)",
+            boxShadow: "var(--card-shadow)",
+            overflow: "hidden", display: "flex", flexDirection: "column",
           }}>
             <AlertFeed
               alerts={alerts}
@@ -249,27 +249,31 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Drag handle */}
+          {/* Vertical resize handle */}
           <div
             onMouseDown={onDragStart}
             style={{
-              height: 5, flexShrink: 0, cursor: "row-resize",
-              background: "var(--border)", position: "relative", zIndex: 2,
-              transition: "background 0.15s",
+              height: 16, flexShrink: 0, cursor: "row-resize",
               display: "flex", alignItems: "center", justifyContent: "center",
+              zIndex: 2, marginTop: -3, marginBottom: -3,
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#6366F155")}
-            onMouseLeave={e => (e.currentTarget.style.background = "var(--border)")}
           >
-            <div style={{ display: "flex", gap: 3 }}>
-              {[0, 1, 2].map(i => (
-                <div key={i} style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--muted)", opacity: 0.6 }} />
-              ))}
-            </div>
+            <div style={{
+              height: 4, width: 36, borderRadius: 3,
+              background: "var(--border2)", opacity: 0.45,
+              transition: "opacity 0.15s, background 0.15s",
+            }} />
           </div>
 
-          {/* AI panel */}
-          <div style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          {/* AI intelligence tile */}
+          <div style={{
+            flex: 1, minHeight: 0,
+            borderRadius: "var(--radius-lg)",
+            background: "var(--card)",
+            border: "1px solid var(--card-border)",
+            boxShadow: "var(--card-shadow)",
+            overflow: "hidden",
+          }}>
             <AIExplanation alert={selectedAlert} />
           </div>
         </div>
@@ -286,20 +290,20 @@ export default function Dashboard() {
       {/* Footer */}
       <div style={{
         height: 26, flexShrink: 0,
-        background: "linear-gradient(90deg, #08080F 0%, #0A0A1A 100%)",
+        background: "var(--bg)",
         borderTop: "1px solid var(--border)",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "0 18px", gap: 12,
       }}>
-        <span style={{ fontSize: 9, color: "var(--muted)", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 9, color: "var(--text2)", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>
           Real-time financial fraud detection powered by graph analysis &amp; IBM Granite AI
         </span>
 
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           <span style={{ fontSize: 8, color: "#4A5270", letterSpacing: "0.08em", textTransform: "uppercase" }}>Powered by</span>
           {[
-            { label: "IBM watsonx.ai", color: "#818CF8", bg: "rgba(99,102,241,0.1)",  border: "rgba(99,102,241,0.2)"  },
-            { label: "IBM Db2",        color: "#60A5FA", bg: "rgba(59,130,246,0.08)", border: "rgba(59,130,246,0.18)" },
+            { label: "IBM watsonx.ai", color: "#818CF8", bg: "rgba(99,102,241,0.1)",   border: "rgba(99,102,241,0.2)"   },
+            { label: "IBM Db2",        color: "#60A5FA", bg: "rgba(59,130,246,0.08)",  border: "rgba(59,130,246,0.18)"  },
             { label: "Granite 3 · 8B", color: "#A78BFA", bg: "rgba(167,139,250,0.08)", border: "rgba(167,139,250,0.18)" },
           ].map(({ label, color, bg, border }) => (
             <span key={label} style={{
